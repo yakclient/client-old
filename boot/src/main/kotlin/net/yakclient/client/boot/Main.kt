@@ -1,47 +1,51 @@
 package net.yakclient.client.boot
 
+import com.typesafe.config.ConfigFactory
+import io.github.config4k.extract
+import io.github.config4k.registerCustomType
 import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
-import kotlinx.cli.ParsingException
 import kotlinx.cli.required
-import net.yakclient.client.internal.setting.YakLaunchSettings
+import net.yakclient.client.boot.ext.Extension
+import net.yakclient.client.boot.lifecycle.loadJar
+import net.yakclient.client.util.FileArgument
+import net.yakclient.client.util.UriCustomType
+import net.yakclient.client.util.child
+import net.yakclient.client.util.immutableLateInit
 import java.io.File
-import kotlin.properties.Delegates
-import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KProperty
+import java.util.logging.Level
+import java.util.logging.Logger
+import kotlin.system.exitProcess
 
 public object YakClient {
-    public var settings: YakLaunchSettings by object : ReadWriteProperty<YakClient, YakLaunchSettings> {
-        private lateinit var value: YakLaunchSettings
+    public var settings: BootSettings by immutableLateInit()
+    public val sysLogger: Logger = Logger.getLogger("YakClient")
+    internal val boot: Extension = BootModule(YakClient::class.java.classLoader)
+    public var yakDir : File by immutableLateInit()
 
-        override fun getValue(thisRef: YakClient, property: KProperty<*>): YakLaunchSettings = value
-
-        override fun setValue(thisRef: YakClient, property: KProperty<*>, value: YakLaunchSettings) =
-            if (this::value.isInitialized)
-                throw UnsupportedOperationException("Cannot set launch settings at this moment")
-            else this.value = value
+    public fun exit(e: Exception, extra: String = "A critical error has occurred"): Nothing {
+        sysLogger.log(Level.SEVERE, extra)
+        sysLogger.log(Level.SEVERE, "YakClient had to quit unexpectedly because : ${e.message}")
+        e.printStackTrace()
+        exitProcess(1)
     }
 }
 
+private const val SETTINGS_NAME = "settings.conf"
+
 public fun main(args: Array<String>) {
-    val fileType = object : ArgType<File>(false) {
-        override val description: kotlin.String = "{ java.nio.File }"
-
-        override fun convert(value: kotlin.String, name: kotlin.String): File =
-            File(value).takeIf { it.exists() }
-                ?: throw ParsingException("Option $name expected to be an existing file path. $value is provided.")
-    }
-
     val parser = ArgParser("yakclient")
 
-    val mcVersion by parser.option(ArgType.String, "mcversion", "mcv").required()
-    val apiVersion by parser.option(ArgType.String, "apiversion", "apiv").required()
-    val mcLocation by parser.option(fileType, "mclocation", "mcl").required()
-    val apiLocation by parser.option(fileType, "apilocation", "apil").required()
-    val extensionDir by parser.option(fileType, "extensiondirectory", "extd").required()
+    val yakDirectory by parser.option(FileArgument, "yakdirectory", "d").required()
+
+    registerCustomType(UriCustomType())
 
     parser.parse(args).run {
-
+        YakClient.yakDir = yakDirectory
+        YakClient.settings = ConfigFactory.parseFile(yakDirectory.child(SETTINGS_NAME)).extract("boot")
     }
+
+    YakExtensionManager.extLoader(YakClient.boot).loadJar(YakClient.settings.apiLocation)
+
+//    println(YakExtensionManager.minecraft)
 }
 

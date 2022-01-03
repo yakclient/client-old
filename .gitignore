@@ -7,3 +7,4 @@
 .gradle
 out
 gradle.properties
+workingDir/settings.conf
