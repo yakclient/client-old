@@ -1,11 +1,7 @@
 package net.yakclient.client.boot.lifecycle
 
-import com.typesafe.config.ConfigFactory
-import io.github.config4k.extract
-import net.yakclient.client.boot.setting.ExtensionSettings
-import net.yakclient.client.boot.setting.SettingsAnalyzer
-import java.io.InputStreamReader
-
-public inline fun <reified T: ExtensionSettings> hoconAnalyzer() : SettingsAnalyzer<T> = SettingsAnalyzer(interpreter = {
-    ConfigFactory.parseReader(InputStreamReader(it.asInputStream())).extract()
-})
+//public const val LOADER_SETTINGS_PATH : String = "loader"
+//
+//public inline fun <reified T: ExtensionSettings> hoconAnalyzer(path: String = LOADER_SETTINGS_PATH) : SettingsAnalyzer<T> = SettingsAnalyzer(interpreter = {
+//    ConfigFactory.parseReader(InputStreamReader(it.asInputStream())).let { c -> if (path.isEmpty()) c.extract() else c.extract(path) }
+//})

@@ -1,5 +1,5 @@
 package net.yakclient.client.api.annotations
 
-@Retention(AnnotationRetention.RUNTIME)
+@Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
-public annotation class ExtensionSpecific()
+internal annotation class ExtensionSpecific

@@ -9,27 +9,13 @@ import java.net.URL
 import java.nio.file.Paths
 import java.util.jar.JarFile
 
-public class JarReferencer : ExtensionReferencer {
-    override fun process(toProcess: URI): ExtensionReference = loadJar(toProcess)
-}
+public fun loadJar(uri: URI): ExtReference = JarReference(
+    JarFile(Paths.get(uri).toFile()).entries().toList()
+        .associate { it.name to URI.create("jar:file:${File.separator}${uri.path.removePrefix("/")}!/${it.name}") })
 
-public fun loadJar(uri: URI) : ExtensionReference = ExtensionReference(buildMap {
-    val jar = JarFile(Paths.get(uri).toFile())
+public class JarReference(delegate: Map<String, URI>) : ExtReference(delegate)
 
-
-    for (entry in jar.entries()) {
-        put(entry.name, object : ExtensionEntry {
-            override val name: String = entry.name
-
-            //TODO Seems very operating system dependenant, figure this out
-            override fun asURI(): URI {
-                return URI.create("jar:file:${File.separator}${uri.path.removePrefix("/")}!/${entry.name}")
-            }
-
-            override fun asInputStream(): InputStream = jar.getInputStream(entry)
-        })// NamedExtensionEntry(entry.name) {jar.getInputStream(entry)})
-    }
-})
-
-public fun ExtensionLoader.loadJar(uri: URI): Extension =
-    load(JarReferencer().process(uri).also { check((it.isNotEmpty())) { "Failed to load jar entries for uri: $uri" } })
+//public fun ExtensionLoader.loadJar(uri: URI): Extension =
+//    load(
+//        net.yakclient.client.boot.lifecycle.loadJar(uri)
+//            .also { check((it.isNotEmpty())) { "Failed to load jar entries for uri: $uri" } })

@@ -2,10 +2,10 @@ package net.yakclient.client.boot.test.ext
 
 
 class TestExtLoading {
-//    @Test
+//    @Testi
 //    fun `Test basic extension pipeline`() {
-//        val loader = MutableExtLoader().add(ClassNameRefiner()).add {
-//            AnalyzedExtReference(it.toMutableMap().also { map ->
+//        val loader = MutableExtLoader().add(ClassNameRefiner).add {
+//            ExtensionReference(it.toMutableMap().also { map ->
 //                val config = TransformerConfig.of {
 //                    transformClass { node ->
 //                        node.apply { node.name = "net/yakclient/generated/SomeGeneratedClass" }
@@ -27,18 +27,22 @@ class TestExtLoading {
 //                val resolve = Bmu.resolve(ClassReader(ClassToBeInjected::class.java.name), config)
 //
 //                map["net.yakclient.generated.SomeGeneratedClass"] =
-//                    NamedExtensionEntry("net.yakclient.generated.SomeGeneratedClass") {
-//                        ByteArrayInputStream(resolve)
+//                    object : ExtensionEntry {
+//                        override val name = "net.yakclient.generated.SomeGeneratedClass"
+//
+//                        override fun asURI(): Nothing = throw UnsupportedOperationException("No URI available")
+//
+//                        override fun asInputStream(): InputStream = ByteArrayInputStream(resolve)
 //                    }
 //            })
 //        }.add {
-//            ModuleReferenceClassLoader(it)
+//            ExtClassLoader(ClassLoader.getSystemClassLoader(), it)
 //        }.add {
-//            object : Extension() {  }
+//            object : Extension() {}
 //        }.toLoader()
 //
 //        val module = loader.load(
-//            JarReferencer().process(
+//            loadJar(
 //                workingDir().parent("client").child("api", "build", "libs").first()
 //                    .toURI()
 //            )
@@ -46,6 +50,7 @@ class TestExtLoading {
 //        val clazz = module.loader.loadClass("net.yakclient.generated.SomeGeneratedClass")
 //        val obj = clazz.getConstructor().newInstance()
 //        clazz.getMethod("print").invoke(obj)
+//
 //    }
 }
 

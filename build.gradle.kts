@@ -28,9 +28,15 @@ subprojects {
         destinationDirectory.set(tasks.compileJava.get().destinationDirectory.asFile.get())
         kotlinOptions.jvmTarget = "11"
     }
+
+    tasks.compileJava {
+        targetCompatibility = "11"
+        sourceCompatibility = "11"
+
+    }
+
     dependencies {
         implementation(kotlin("stdlib"))
-
     }
 
     kotlin {
