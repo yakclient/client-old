@@ -5,6 +5,8 @@ import io.github.config4k.ClassContainer
 import io.github.config4k.registerCustomType
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
+import net.yakclient.client.boot.ext.entryOf
+import net.yakclient.client.boot.ext.entryOfClass
 import net.yakclient.client.boot.lifecycle.BasicExtensionSettings
 import net.yakclient.client.boot.repository.ArtifactID
 import net.yakclient.client.util.*
@@ -41,6 +43,17 @@ class ModuleLoaderTests {
     }
 
     @Test
+    fun `Load reference with ExtensionLoader`() {
+        val ref = ExtensionLoader.find(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toURI())
+
+        assert(ref.name == "yakclient.client.api")
+
+        ref.writer.put(entryOfClass(ClassToBeInjected::class.java.name))
+
+        assert(ref.reader[ClassToBeInjected::class.java.name] != null)
+    }
+
+    @Test
     fun `Test load module with extension loader`() {
         registerCustomType(UriCustomType())
         registerCustomType(object : TypedMatchingType<ArtifactID>(ArtifactID::class.java), ReadOnlyType {
@@ -49,7 +62,7 @@ class ModuleLoaderTests {
         })
 
         val ext = ExtensionLoader.load(
-            ExtensionLoader.reference(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toURI()),
+            ExtensionLoader.find(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toURI()),
             object : Extension() {
                 init {
                     init(

@@ -4,12 +4,17 @@ import java.io.InputStream
 import java.net.URI
 
 public interface ExtReference {
+    public val name: String
     public val location: URI
     public val reader : Reader
     public val writer : Writer
 
     public interface Reader {
-        public fun of(name: String) : ExtRefEntry?
+        public fun of(name: String) : Entry?
+
+        public fun contains(name: String) : Boolean = get(name) == null
+
+        public operator fun get(name: String) : Entry? = of(name)
     }
 
     public interface Writer {
@@ -17,14 +22,16 @@ public interface ExtReference {
 
         public fun put(name: String, ins: InputStream) : Unit = put(name, ProvidedEntry(name, null, null, ins))
 
-        public fun put(name: String, entry: ExtRefEntry)
+        public fun put(entry: Entry): Unit = put(entry.name, entry)
+
+        public fun put(name: String, entry: Entry)
 
         private data class ProvidedEntry(
             override val name: String,
             private val  _uri: URI?,
             private val  _bytes: ByteArray?,
             private val _inputStream: InputStream?
-        ) : ExtRefEntry {
+        ) : Entry {
             override val asBytes: ByteArray = _bytes ?: throw UnsupportedOperationException("Not able to provide bytes of this entry")
             override val asInputStream: InputStream = _inputStream ?: throw UnsupportedOperationException("Not able to provide an InputStream of this entry")
             override val asUri: URI = _uri ?: throw UnsupportedOperationException("Not able to provide a URI pointing to this entry")
@@ -54,7 +61,7 @@ public interface ExtReference {
         }
     }
 
-    public interface ExtRefEntry {
+    public interface Entry {
         public val name: String
         public val asUri: URI
         public val asBytes: ByteArray

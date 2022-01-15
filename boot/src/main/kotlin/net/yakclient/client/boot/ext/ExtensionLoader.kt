@@ -1,5 +1,8 @@
 package net.yakclient.client.boot.ext
 
+import io.github.config4k.extract
+import net.yakclient.client.boot.lifecycle.BasicExtensionSettings
+import net.yakclient.client.util.toConfig
 import java.net.URI
 import java.util.*
 
@@ -9,37 +12,30 @@ public class ExtensionLoader private constructor() {
             ServiceLoader.load(T::class.java).first(search)
 
         @JvmStatic
-        public fun reference(uri: URI): ExtReference = find<Referencer<ExtReference>>().reference(uri)
+        public fun find(uri: URI): ExtReference = find<Finder<ExtReference>>().find(uri)
 
         @JvmStatic
+        public fun resolve(ref: ExtReference, parent: Extension) : ClassLoader = find<Resolver<ExtReference>> { it.accepts.isAssignableFrom(ref::class.java) }.resolve(ref, parent)
+        
+        @JvmStatic
         public fun load(ref: ExtReference, parent: Extension): Extension {
-//            val resolver = find<Resolver<ExtReference>> { it.accepts.isAssignableFrom(ref::class.java) }
-//            val settings = (ref["ext-settings.conf"]?.toConfig()?.extract<BasicExtensionSettings>("loader")
-//                ?: throw IllegalStateException("Extension must have ext-settings.conf file!"))
-//
-//            val (main) = settings
-//
-//            val loader: ClassLoader = resolver.resolve(ref, parent)
-//
-////                ref[sl]?.let {
-////                val loader = (assertIs<ClassDefiner>(parent.loader).defineClass(sl!!, readInputStream(it.openStream())))
-////                assert(ClassDefiner::class.java.isAssignableFrom(loader))
-////                loader.getConstructor(ExtReference::class.java).newInstance(ref) as ClassLoader
-////            } ?: resolver.resolve(ref, parent.loader)
-//
-////            assert(ref.contains(main)) { "Failed to find extension class $main, make sure the definition in your ext-settings.conf and extension match!" }
-//
-//            val ext: Extension = (loader.loadClass(main)).getConstructor().newInstance() as Extension
-//
-//            ext.init(loader, settings,  parent)
-//
-//            return ext
-            TODO()
+            val settings = ref.reader["ext-settings.conf"]?.asUri?.toConfig()?.extract<BasicExtensionSettings>("loader")
+                ?: throw IllegalStateException("Failed to find or read ext-settings.conf file in module: ${ref.location.path}!")
+
+            val (main) = settings
+
+            val loader: ClassLoader = resolve(ref, parent)
+
+            val ext: Extension = (loader.loadClass(main)).getConstructor().newInstance() as Extension
+
+            ext.init(loader, settings, parent)
+
+            return ext
         }
     }
 
-    internal interface Referencer<out T : ExtReference> {
-        fun reference(uri: URI): T
+    internal interface Finder<out T : ExtReference> {
+        fun find(uri: URI): T
     }
 
     internal interface Resolver<T : ExtReference> {

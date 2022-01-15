@@ -10,6 +10,10 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+
+}
+
 tasks.wrapper {
     gradleVersion = "7.3.1"
 }

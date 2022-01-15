@@ -10,11 +10,9 @@ import kotlinx.cli.required
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
 import net.yakclient.client.boot.repository.ArtifactID
-import net.yakclient.client.boot.setting.ExtensionSettings
 import net.yakclient.client.util.*
 import java.io.File
 import java.util.logging.Level
-import java.util.logging.Logger
 import kotlin.system.exitProcess
 
 public object YakClient : Extension() {
@@ -61,6 +59,6 @@ public fun main(args: Array<String>) {
         )
     }
 
-    ExtensionLoader.load(ExtensionLoader.reference(YakClient.settings.apiLocation), YakClient).onLoad()
+    ExtensionLoader.load(ExtensionLoader.find(YakClient.settings.apiLocation), YakClient).onLoad()
 }
 

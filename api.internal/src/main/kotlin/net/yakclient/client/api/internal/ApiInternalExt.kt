@@ -7,12 +7,12 @@ import java.net.URI
 
 public class ApiInternalExt : Extension() {
     override fun onLoad() {
-        ExtensionLoader.load(
-            ExtensionLoader.reference(ArrayList<URI>().apply {
-                add(YakClient.settings.mcExtLocation)
-                add(YakClient.settings.mcLocation)
-                addAll(YakClient.settings.minecraftDependencies)
-            }
-        ), this).onLoad()
+//        ExtensionLoader.load(
+//            ExtensionLoader.find(ArrayList<URI>().apply {
+//                add(YakClient.settings.mcExtLocation)
+//                add(YakClient.settings.mcLocation)
+//                addAll(YakClient.settings.minecraftDependencies)
+//            }
+//        ), this).onLoad()
     }
 }

@@ -1,4 +1,6 @@
 import net.yakclient.client.boot.ext.ExtensionLoader;
+import net.yakclient.client.boot.internal.ExtJpmFinder;
+import net.yakclient.client.boot.internal.ExtJpmResolver;
 
 module yakclient.client.boot {
     requires kotlin.stdlib;
@@ -8,6 +10,7 @@ module yakclient.client.boot {
     requires typesafe.config;
     requires yakclient.client.util;
     requires kotlin.reflect;
+//    requires jdk.internal.m
 
     requires yakclient.bmu.api;
 
@@ -18,9 +21,9 @@ module yakclient.client.boot {
     exports net.yakclient.client.boot.exception;
     opens net.yakclient.client.boot.repository to kotlin.reflect;
 
-    uses ExtensionLoader.Referencer;
+    uses ExtensionLoader.Finder;
     uses ExtensionLoader.Resolver;
 
-    provides ExtensionLoader.Referencer with net.yakclient.client.boot.lifecycle.ExtJpmReferencer;
-    provides ExtensionLoader.Resolver with net.yakclient.client.boot.lifecycle.ExtJpmResolver;
+    provides ExtensionLoader.Finder with ExtJpmFinder;
+    provides ExtensionLoader.Resolver with ExtJpmResolver;
 }
