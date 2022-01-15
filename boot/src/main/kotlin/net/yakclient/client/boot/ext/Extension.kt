@@ -13,7 +13,6 @@ public abstract class Extension {
     public var loader: ClassLoader by immutableLateInit()
     private var settings: ExtensionSettings by immutableLateInit()
     public var logger: Logger by immutableLateInit()
-    public var module: Module = this::class.java.module
 
     public fun init(loader: ClassLoader, settings: ExtensionSettings, parent: Extension? = null) {
         if (initialized) throw AlreadyInitializedException(this::class)
@@ -27,4 +26,6 @@ public abstract class Extension {
     }
 
     public open fun onLoad() {}
+
+    override fun toString(): String = "Extension(name=${settings.name}, parent=$parent, loader=$loader)"
 }

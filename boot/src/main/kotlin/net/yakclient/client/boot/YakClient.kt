@@ -9,8 +9,6 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.required
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
-import net.yakclient.client.boot.lifecycle.YakLoader
-import net.yakclient.client.boot.lifecycle.loadJar
 import net.yakclient.client.boot.repository.ArtifactID
 import net.yakclient.client.boot.setting.ExtensionSettings
 import net.yakclient.client.util.*

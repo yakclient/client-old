@@ -9,6 +9,8 @@ module yakclient.client.boot {
     requires yakclient.client.util;
     requires kotlin.reflect;
 
+    requires yakclient.bmu.api;
+
     exports net.yakclient.client.boot;
     exports net.yakclient.client.boot.ext;
     exports net.yakclient.client.boot.setting;
