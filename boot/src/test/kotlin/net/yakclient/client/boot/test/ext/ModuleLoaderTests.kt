@@ -5,10 +5,8 @@ import io.github.config4k.ClassContainer
 import io.github.config4k.registerCustomType
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
-import net.yakclient.client.boot.ext.entryOf
 import net.yakclient.client.boot.ext.entryOfClass
-import net.yakclient.client.boot.lifecycle.BasicExtensionSettings
-import net.yakclient.client.boot.repository.ArtifactID
+import net.yakclient.client.boot.setting.BasicExtensionSettings
 import net.yakclient.client.util.*
 import org.junit.jupiter.api.Test
 import java.lang.module.Configuration
@@ -56,10 +54,10 @@ class ModuleLoaderTests {
     @Test
     fun `Test load module with extension loader`() {
         registerCustomType(UriCustomType())
-        registerCustomType(object : TypedMatchingType<ArtifactID>(ArtifactID::class.java), ReadOnlyType {
-            override fun parse(clazz: ClassContainer, config: Config, name: String): Any =
-                config.getString(name).split(':').let { ArtifactID(it[0], it[1], it[2]) }
-        })
+//        registerCustomType(object : TypedMatchingType<ArtifactID>(ArtifactID::class.java), ReadOnlyType {
+//            override fun parse(clazz: ClassContainer, config: Config, name: String): Any =
+//                config.getString(name).split(':').let { ArtifactID(it[0], it[1], it[2]) }
+//        })
 
         val ext = ExtensionLoader.load(
             ExtensionLoader.find(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toURI()),

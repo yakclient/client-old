@@ -1,6 +1,5 @@
 package net.yakclient.client.boot
 
-import net.yakclient.client.boot.repository.ArtifactID
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.setting.ExtensionSettings
 import java.io.File
@@ -19,6 +18,6 @@ public data class BootSettings(
     override val extensionClass: String = YakClient::class.java.name
     override val loader: String? = null
     override val name: String = "YakClient Boot"
-    override val dependencies: List<ArtifactID> = listOf()
+    override val dependencies: List<String> = listOf()
     override val repositories: List<RepositorySettings> = listOf()
 }

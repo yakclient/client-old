@@ -13,13 +13,12 @@ internal class ExtJpmResolver : ExtensionLoader.Resolver<JpmReference> {
 
     override fun resolve(ref: JpmReference, parent: Extension): ClassLoader {
         val module = parent::class.java.module
-        val config: Configuration =
-            Configuration.resolve(
-                ProvidedModuleFinder(ref),
-                listOf(module.layer.configuration()),
-                ModuleFinder.of(),
-                listOf(ref.descriptor().name())
-            )
+        val config: Configuration = Configuration.resolve(
+            ProvidedModuleFinder(ref),
+            listOf(module.layer.configuration()),
+            ModuleFinder.of(),
+            listOf(ref.descriptor().name())
+        )
 
         val controller = ModuleLayer.defineModulesWithOneLoader(config, listOf(module.layer), parent.loader)
         val layer = controller.layer()

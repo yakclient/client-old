@@ -36,7 +36,7 @@ public fun entryOf(
 public fun entryOfClass(className: String): ExtReference.Entry = ExtensionEntry(className, _uri = {
     ClassLoader.getSystemResource("${className.replace('.', '/')}.class").toURI()
 }, _bytes = {
-    ClassLoader.getSystemResourceAsStream("${className.replace('.', '/')}.class").readInputStream()
+    ClassLoader.getSystemResourceAsStream("${className.replace('.', '/')}.class")!!.readInputStream()
 }, _ins = {
     ClassLoader.getSystemResourceAsStream("${className.replace('.', '/')}.class")
 })

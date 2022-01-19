@@ -9,7 +9,9 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.required
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
-import net.yakclient.client.boot.repository.ArtifactID
+import net.yakclient.client.boot.repository.RepositoryFactory
+import net.yakclient.client.boot.repository.RepositorySettings
+import net.yakclient.client.boot.repository.RepositoryType
 import net.yakclient.client.util.*
 import java.io.File
 import java.util.logging.Level
@@ -42,10 +44,8 @@ public fun main(args: Array<String>) {
     val yakDirectory by parser.option(FileArgument, "yakdirectory", "d").required()
 
     registerCustomType(UriCustomType())
-    registerCustomType(object : TypedMatchingType<ArtifactID>(ArtifactID::class.java), ReadOnlyType {
-        override fun parse(clazz: ClassContainer, config: Config, name: String): Any =
-            config.getString(name).split(':').let { ArtifactID(it[0], it[1], it[2]) }
-    })
+
+    YakClient::class.java.module.addReads(ModuleLayer.boot().findModule("com.fasterxml.jackson.dataformat.xml").get())
 
     parser.parse(args).run {
         val settings : BootSettings = ConfigFactory.parseFile(yakDirectory.child(SETTINGS_NAME)).extract("boot")
@@ -58,6 +58,12 @@ public fun main(args: Array<String>) {
             null
         )
     }
+
+    val handler = RepositoryFactory.create(RepositorySettings(RepositoryType.MAVEN_CENTRAL, null, null))
+
+    val dep = handler.find("net.yakclient:mixins-api:1.1.2")
+
+    println(dep?.uri?.path)
 
     ExtensionLoader.load(ExtensionLoader.find(YakClient.settings.apiLocation), YakClient).onLoad()
 }
