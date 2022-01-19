@@ -56,3 +56,10 @@ internal class ParentVersionProvider(
 ) : ConstantPropertyProvider("project.parent.version") {
     override fun provide(document: Element): String? = document.tryLoadParent(builder, repo)?.valueOf("version")
 }
+
+internal class ProjectVersionProvider(
+    private val builder: DocumentBuilder,
+    private val repo: String
+) : ConstantPropertyProvider("project.version") {
+    override fun provide(document: Element): String? = document.valueOf("version") ?: document.tryLoadParent(builder, repo)?.valueOf("version")
+}

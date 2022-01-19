@@ -1,10 +1,11 @@
 package net.yakclient.client.boot.internal.maven
 
 import net.yakclient.client.boot.internal.maven.MavenArtifact.Companion.loadArtifact
+import net.yakclient.client.boot.internal.maven.provider.*
 import net.yakclient.client.boot.internal.maven.provider.LocalPomProvider
-import net.yakclient.client.boot.internal.maven.provider.MavenPropertyProvider
 import net.yakclient.client.boot.internal.maven.provider.ParentPomProvider
 import net.yakclient.client.boot.internal.maven.provider.ParentVersionProvider
+import net.yakclient.client.boot.internal.maven.provider.ProjectVersionProvider
 import net.yakclient.client.boot.repository.Dependency
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
@@ -41,7 +42,8 @@ public class MavenRepositoryHandler(override val settings: RepositorySettings) :
     private val propertyProviders = listOf(
         LocalPomProvider(),
         ParentPomProvider(builder, repo),
-        ParentVersionProvider(builder, repo)
+        ParentVersionProvider(builder, repo),
+        ProjectVersionProvider(builder, repo)
     )
 
     private fun loadProperty(doc: Element, property: String) =

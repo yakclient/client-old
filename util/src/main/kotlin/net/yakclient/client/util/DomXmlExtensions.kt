@@ -4,13 +4,13 @@ import org.w3c.dom.Element
 import org.w3c.dom.Node
 
 
-public operator fun Element.get(tag: String): List<Node> =  ArrayList<Node>().apply {
-    val list = getElementsByTagName(tag)
-
-    for (i in 0 until list.length) {
-        add(list.item(i))
-    }
-}
+//public operator fun Element.get(tag: String): List<Node> =  ArrayList<Node>().apply {
+//    val list = getElementsByTagName(tag)
+//
+//    for (i in 0 until list.length) {
+//        add(list.item(i))
+//    }
+//}
 
 public operator fun Node.get(tag: String) : List<Node> = ArrayList<Node>().apply {
     for (i in 0 until childNodes.length) {
