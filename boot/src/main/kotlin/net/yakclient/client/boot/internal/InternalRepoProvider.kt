@@ -1,5 +1,6 @@
 package net.yakclient.client.boot.internal
 
+import net.yakclient.client.boot.internal.maven.MavenRepositoryHandler
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositoryProvider
 import net.yakclient.client.boot.repository.RepositorySettings

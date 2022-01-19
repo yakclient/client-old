@@ -2,6 +2,7 @@ import net.yakclient.client.boot.ext.ExtensionLoader;
 import net.yakclient.client.boot.internal.ExtJpmFinder;
 import net.yakclient.client.boot.internal.ExtJpmResolver;
 import net.yakclient.client.boot.internal.InternalRepoProvider;
+import net.yakclient.client.boot.internal.maven.provider.MavenPropertyProvider;
 import net.yakclient.client.boot.repository.RepositoryProvider;
 
 module yakclient.client.boot {

@@ -19,7 +19,7 @@ public operator fun Node.get(tag: String) : List<Node> = ArrayList<Node>().apply
     }
 }
 
-public fun Node.stringValue(tag: String): String? = this[tag].firstOrNull()?.childNodes?.item(0)?.nodeValue
+public fun Node.valueOf(tag: String): String? = this[tag].firstOrNull()?.childNodes?.item(0)?.nodeValue
 
 
 //((builder.parse(pom.openStream()).also {
