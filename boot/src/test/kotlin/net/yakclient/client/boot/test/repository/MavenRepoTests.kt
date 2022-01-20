@@ -1,5 +1,6 @@
 package net.yakclient.client.boot.test.repository
 
+import net.yakclient.client.boot.repository.Dependency
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.repository.RepositoryType
@@ -13,5 +14,10 @@ class MavenRepoTests {
         val dep = handler.find("net.yakclient:web-utils:1.3.1")
 
         println(dep?.uri?.path)
+
+        fun findAll(dep: Dependency): Int =
+            dep.dependants.size + dep.dependants.map(::findAll).fold(0) { a, b -> a + b }
+
+        println(findAll(dep!!))
     }
 }

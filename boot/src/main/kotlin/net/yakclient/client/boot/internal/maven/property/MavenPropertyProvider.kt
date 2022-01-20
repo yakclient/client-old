@@ -1,4 +1,4 @@
-package net.yakclient.client.boot.internal.maven.provider
+package net.yakclient.client.boot.internal.maven.property
 
 import org.w3c.dom.Element
 
