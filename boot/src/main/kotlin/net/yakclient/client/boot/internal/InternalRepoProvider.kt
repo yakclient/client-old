@@ -7,10 +7,9 @@ import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.repository.RepositoryType
 
 public class InternalRepoProvider : RepositoryProvider {
-    override fun provide(settings: RepositorySettings): RepositoryHandler = when(settings.type) {
+    override fun provide(settings: RepositorySettings): RepositoryHandler<*> = when(settings.type) {
         RepositoryType.MAVEN_CENTRAL, RepositoryType.MAVEN -> MavenRepositoryHandler(settings)
-        RepositoryType.DIRECT -> TODO()
-        RepositoryType.DIRECT_TREE -> TODO()
+        RepositoryType.LOCAL -> LocalRepositoryHandler(settings)
     }
 
     override fun provides(type: RepositoryType): Boolean = true

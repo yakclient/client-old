@@ -8,7 +8,8 @@ import net.yakclient.client.boot.ext.ExtensionLoader
 import net.yakclient.client.boot.ext.entryOfClass
 import net.yakclient.client.boot.setting.BasicExtensionSettings
 import net.yakclient.client.util.*
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
+
 import java.lang.module.Configuration
 import java.lang.module.ModuleDescriptor
 import java.lang.module.ModuleFinder
@@ -42,7 +43,7 @@ class ModuleLoaderTests {
 
     @Test
     fun `Load reference with ExtensionLoader`() {
-        val ref = ExtensionLoader.find(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toURI())
+        val ref = ExtensionLoader.find(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toPath())
 
         assert(ref.name == "yakclient.client.api")
 
@@ -60,7 +61,7 @@ class ModuleLoaderTests {
 //        })
 
         val ext = ExtensionLoader.load(
-            ExtensionLoader.find(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toURI()),
+            ExtensionLoader.find(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toPath()),
             object : Extension() {
                 init {
                     init(

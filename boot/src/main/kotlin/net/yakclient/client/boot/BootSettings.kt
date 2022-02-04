@@ -4,16 +4,20 @@ import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.setting.ExtensionSettings
 import java.io.File
 import java.net.URI
+import java.nio.file.Path
 
 public data class BootSettings(
     val mcVersion: String,
     val apiVersion: String,
-    val mcExtLocation: URI,
-    val mcLocation: URI,
-    val apiLocation: URI,
-    val apiInternalLocation: URI,
+    val mcExtLocation: Path,
+    val mcLocation: Path,
+    val apiLocation: Path,
+    val apiInternalLocation: Path,
     val extensionDir: File,
-    val minecraftDependencies : List<URI>
+    val minecraftDependencies : List<URI>,
+
+    val cacheDependencies: Boolean,
+    val dependencyCacheLocation: File,
 ) : ExtensionSettings {
     override val extensionClass: String = YakClient::class.java.name
     override val loader: String? = null

@@ -1,3 +1,4 @@
+import net.yakclient.client.boot.dep.DependencyGraph;
 import net.yakclient.client.boot.ext.ExtensionLoader;
 import net.yakclient.client.boot.internal.ExtJpmFinder;
 import net.yakclient.client.boot.internal.ExtJpmResolver;
@@ -12,26 +13,33 @@ module yakclient.client.boot {
     requires typesafe.config;
     requires yakclient.client.util;
     requires kotlin.reflect;
-
     requires java.xml;
-//    requires com.fasterxml.jackson.core;
-//    requires com.fasterxml.jackson.databind;
-//    requires com.fasterxml.jackson.dataformat.xml;
+    requires kotlinx.coroutines.core.jvm;
 
-    requires yakclient.bmu.api;
+    requires jdk.unsupported;
+    requires java.instrument;
 
     exports net.yakclient.client.boot;
     exports net.yakclient.client.boot.ext;
     exports net.yakclient.client.boot.setting;
     exports net.yakclient.client.boot.lifecycle;
     exports net.yakclient.client.boot.exception;
-    opens net.yakclient.client.boot.repository to kotlin.reflect;
+    exports net.yakclient.client.boot.dep;
+    exports net.yakclient.client.boot.repository;
+
+    opens net.yakclient.client.boot.repository to kotlin.reflect; // For kotlin CLI
+    opens net.yakclient.client.boot.internal to java.base; // For service instantiation
+    exports net.yakclient.client.boot.internal to java.base; // ^
+    exports net.yakclient.client.boot.internal.maven to kotlin.reflect; // For config parsing
 
     uses ExtensionLoader.Finder;
     uses ExtensionLoader.Resolver;
     uses RepositoryProvider;
+    uses DependencyGraph;
 
     provides ExtensionLoader.Finder with ExtJpmFinder;
     provides ExtensionLoader.Resolver with ExtJpmResolver;
     provides RepositoryProvider with InternalRepoProvider;
+
+    provides net.yakclient.client.boot.dep.DependencyGraph with net.yakclient.client.boot.internal.JpmDependencyGraph;
 }

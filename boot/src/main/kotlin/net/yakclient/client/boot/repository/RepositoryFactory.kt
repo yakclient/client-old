@@ -11,5 +11,5 @@ public object RepositoryFactory {
                     ?: throw IllegalStateException("Must be (only) 1 repository providers per type!"))
         }
 
-    public fun create(settings: RepositorySettings): RepositoryHandler = providers[settings.type]!!.provide(settings)
+    public fun create(settings: RepositorySettings): RepositoryHandler<*> = providers[settings.type]!!.provide(settings)
 }

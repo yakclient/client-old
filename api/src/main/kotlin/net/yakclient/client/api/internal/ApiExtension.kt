@@ -1,4 +1,4 @@
-package net.yakclient.client.api
+package net.yakclient.client.api.internal
 
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.ext.Extension

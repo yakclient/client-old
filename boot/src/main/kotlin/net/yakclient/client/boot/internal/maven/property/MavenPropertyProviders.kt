@@ -9,6 +9,7 @@ import org.w3c.dom.Element
 import org.xml.sax.SAXException
 import java.io.IOException
 import javax.xml.parsers.DocumentBuilder
+import javax.xml.parsers.DocumentBuilderFactory
 
 private fun Element.tryLoadParent(builder: DocumentBuilder, repo: String): Element? {
     val parent = this["parent"].firstOrNull()?.let {
@@ -33,10 +34,10 @@ private fun <T> Element.travelParents(builder: DocumentBuilder, repo: String, ca
     call(this) ?: (this.tryLoadParent(builder, repo))?.travelParents(builder, repo, call)
 
 internal class PomPropertyProvider(
-    private val builder: DocumentBuilder,
+    private val builder: DocumentBuilderFactory,
     private val repo: String
 ): MavenPropertyProvider {
-    override fun provide(document: Element, property: String): String? = document.travelParents(builder, repo) { it["properties"].firstOrNull()?.valueOf(property) }
+    override fun provide(document: Element, property: String): String? = document.travelParents(builder.newDocumentBuilder(), repo) { it["properties"].firstOrNull()?.valueOf(property) }
 }
 
 //internal class LocalPomProvider : MavenPropertyProvider {
@@ -63,12 +64,12 @@ internal abstract class ConstantPropertyProvider(
 
 
 internal class PomVersionProvider(
-    private val builder: DocumentBuilder,
+    private val builder: DocumentBuilderFactory,
     private val repo: String
 ) : MavenPropertyProvider {
     override fun provide(document: Element, property: String): String? = when(property) {
-        "project.version" -> document.travelParents(builder, repo) { it.valueOf("version") }
-        "project.parent.version" -> document.tryLoadParent(builder, repo)?.valueOf("version")
+        "project.version" -> document.travelParents(builder.newDocumentBuilder(), repo) { it.valueOf("version") }
+        "project.parent.version" -> document.tryLoadParent(builder.newDocumentBuilder(), repo)?.valueOf("version")
         else -> null
     }
 }
