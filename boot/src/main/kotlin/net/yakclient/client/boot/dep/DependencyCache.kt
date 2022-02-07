@@ -27,7 +27,7 @@ internal object DependencyCache {
     init {
         val metaFile = cacheMeta.toFile()
 
-        if (cacheMeta.createFile()) mapOf<String, CachedDependency>().toConfig(META_ROOT_NAME).writeTo(metaFile)
+        if (cacheMeta.createFile()) setOf<CachedDependency>().toConfig(META_ROOT_NAME).writeTo(metaFile)
 
         all = ConfigFactory.parseFile(metaFile).extract<Set<CachedDependency>>(META_ROOT_NAME)
             .associateByTo(ConcurrentHashMap()) { it.desc }
@@ -60,17 +60,23 @@ internal object DependencyCache {
         }
 
         launch(Dispatchers.IO) {
-            val meta = all.mapKeysTo(HashMap()) { (key, _) -> "\"${key.artifact}:${key.version}\"" }
+            val meta = all.values.toMutableSet() //all.mapKeysTo(HashMap()) { (key, _) -> "\"${key.artifact}:${key.version}\"" }
 
-            "\"${desc.artifact}:${desc.version}\"".takeUnless { meta.contains(it) }?.also { a ->
-
-                meta[a] = cachedDependency
+            if (!isCached(desc)) {
+                meta.add(cachedDependency)
 
                 meta.toConfig(META_ROOT_NAME).writeTo(cacheMeta.toFile())
             }
+//            "\"${desc.artifact}:${desc.version}\"".takeUnless { meta.contains(it) }?.also { a ->
+//
+//                meta[a] = cachedDependency
+//
+//                meta.toConfig(META_ROOT_NAME).writeTo(cacheMeta.toFile())
+//            }
+
+            all[cachedDependency.desc] = cachedDependency
         }
 
-        all[cachedDependency.desc] = cachedDependency
 
         cachedDependency
     }

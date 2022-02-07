@@ -10,7 +10,6 @@ import java.net.URI
 import java.nio.ByteBuffer
 import java.util.*
 import java.util.stream.Stream
-import kotlin.collections.HashMap
 
 internal class JpmReference(
     private val delegate: ModuleReference,
@@ -33,7 +32,10 @@ internal class JpmReference(
         private val cache: MutableMap<String, ExtReference.Entry> = HashMap()
 
         override fun of(name: String): ExtReference.Entry? =
-            overrides[name] ?: cache[name] ?: delegate.open().find(name).orElse(null)?.let { JpmEntryRef(name, it) }?.also { cache[name] = it }
+            overrides[name] ?: cache[name] ?: delegate.open().find(name).orElse(null)?.let { JpmEntryRef(name, it) }
+                ?.also { cache[name] = it }
+
+        override fun listEntries(): List<ExtReference.Entry> = list().toList().mapNotNull(::of)
 
         override fun find(name: String): Optional<URI> = Optional.ofNullable(of(name)?.asUri)
 

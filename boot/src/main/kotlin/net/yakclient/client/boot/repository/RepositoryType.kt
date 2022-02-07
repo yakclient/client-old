@@ -4,4 +4,5 @@ public enum class RepositoryType {
     MAVEN,
     MAVEN_CENTRAL,
     LOCAL,
+    MAVEN_LOCAL,
 }

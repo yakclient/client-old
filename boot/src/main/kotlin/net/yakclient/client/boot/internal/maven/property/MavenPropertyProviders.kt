@@ -1,7 +1,8 @@
 package net.yakclient.client.boot.internal.maven.property
 
-import net.yakclient.client.boot.internal.maven.MavenArtifact.Companion.loadArtifact
-import net.yakclient.client.boot.internal.maven.MavenProject
+import net.yakclient.client.boot.internal.maven.MavenDescriptor
+import net.yakclient.client.boot.internal.maven.MavenSchema
+import net.yakclient.client.boot.internal.maven.MavenSchemeContext
 import net.yakclient.client.util.get
 import net.yakclient.client.util.openStream
 import net.yakclient.client.util.valueOf
@@ -11,18 +12,21 @@ import java.io.IOException
 import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory
 
-private fun Element.tryLoadParent(builder: DocumentBuilder, repo: String): Element? {
+private fun Element.tryLoadParent(builder: DocumentBuilder, schema: MavenSchema): Element? {
     val parent = this["parent"].firstOrNull()?.let {
-        MavenProject(
+        MavenDescriptor(
             it.valueOf("groupId")!!,
             it.valueOf("artifactId")!!,
-            it.valueOf("version")!!, // Kill me now if any of these are property substitutions... I can't deal with it...
+            it.valueOf("version"), // Kill me now if any of these are property substitutions... I can't deal with it...
         )
     } ?: return null
 
     return try {
-        builder.parse(loadArtifact(repo, parent).pom.openStream()).documentElement
+        //schema.validate(MavenSchemeContext(parent))?.get(schema.POM) ?: return null
+//        builder.parse(loadArtifact(repo, parent).pom.openStream()).documentElement
+        builder.parse((schema.validate(MavenSchemeContext(parent))?.get(schema.pom) ?: return null).openStream()).documentElement
     } catch (e: IOException) {
+        e.printStackTrace()
         null
     } catch (e: SAXException) {
         e.printStackTrace()
@@ -30,14 +34,14 @@ private fun Element.tryLoadParent(builder: DocumentBuilder, repo: String): Eleme
     }
 }
 
-private fun <T> Element.travelParents(builder: DocumentBuilder, repo: String, call: (Element) -> T?): T? =
+private fun <T> Element.travelParents(builder: DocumentBuilder, repo: MavenSchema, call: (Element) -> T?): T? =
     call(this) ?: (this.tryLoadParent(builder, repo))?.travelParents(builder, repo, call)
 
 internal class PomPropertyProvider(
     private val builder: DocumentBuilderFactory,
-    private val repo: String
+    private val schema: MavenSchema
 ): MavenPropertyProvider {
-    override fun provide(document: Element, property: String): String? = document.travelParents(builder.newDocumentBuilder(), repo) { it["properties"].firstOrNull()?.valueOf(property) }
+    override fun provide(document: Element, property: String): String? = document.travelParents(builder.newDocumentBuilder(), schema) { it["properties"].firstOrNull()?.valueOf(property) }
 }
 
 //internal class LocalPomProvider : MavenPropertyProvider {
@@ -65,11 +69,11 @@ internal abstract class ConstantPropertyProvider(
 
 internal class PomVersionProvider(
     private val builder: DocumentBuilderFactory,
-    private val repo: String
+    private val schema: MavenSchema
 ) : MavenPropertyProvider {
     override fun provide(document: Element, property: String): String? = when(property) {
-        "project.version" -> document.travelParents(builder.newDocumentBuilder(), repo) { it.valueOf("version") }
-        "project.parent.version" -> document.tryLoadParent(builder.newDocumentBuilder(), repo)?.valueOf("version")
+        "project.version" -> document.travelParents(builder.newDocumentBuilder(), schema) { it.valueOf("version") }
+        "project.parent.version" -> document.tryLoadParent(builder.newDocumentBuilder(), schema)?.valueOf("version")
         else -> null
     }
 }

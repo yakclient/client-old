@@ -16,8 +16,10 @@ module yakclient.client.boot {
     requires java.xml;
     requires kotlinx.coroutines.core.jvm;
 
+    // TODO remove, just for insuring that the modules are in the module graph
     requires jdk.unsupported;
     requires java.instrument;
+    requires jdk.attach;
 
     exports net.yakclient.client.boot;
     exports net.yakclient.client.boot.ext;

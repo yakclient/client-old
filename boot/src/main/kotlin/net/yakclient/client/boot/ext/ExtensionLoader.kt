@@ -4,6 +4,7 @@ import io.github.config4k.extract
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.dep.DependencyReference
 import net.yakclient.client.boot.setting.BasicExtensionSettings
+import net.yakclient.client.boot.setting.ExtensionSettings
 import net.yakclient.client.util.toConfig
 import java.nio.file.Path
 import java.util.*
@@ -25,18 +26,29 @@ public class ExtensionLoader private constructor() {
             )
 
         @JvmStatic
-        public fun load(ref: ExtReference, parent: Extension): Extension {
-            val settings = ref.reader["ext-settings.conf"]?.asUri?.toConfig()?.extract<BasicExtensionSettings>("loader")
-                ?: throw IllegalStateException("Failed to find or read ext-settings.conf file in module: ${ref.location.path}!")
-
+        public fun loadDependencies(settings: ExtensionSettings): List<DependencyReference> {
             val repositories = settings.repositories?.map(YakClient.theGraph::ofRepository) ?: listOf()
 
-            val references = settings.dependencies?.map { d ->
+            return settings.dependencies?.map { d ->
                 repositories.firstNotNullOfOrNull { r -> r.load(d) }
                     ?: throw IllegalArgumentException("Failed to find dependency: $d")
             } ?: ArrayList()
+        }
 
-            val loader: ClassLoader = resolve(ref, parent, references)
+        @JvmStatic
+        public fun loadSettings(ref: ExtReference): BasicExtensionSettings =
+            ref.reader["ext-settings.conf"]?.asUri?.toConfig()?.extract<BasicExtensionSettings>("loader")
+                ?: throw IllegalStateException("Failed to find or read ext-settings.conf file in module: ${ref.location.path}!")
+
+        @JvmStatic
+        @JvmOverloads
+        public fun load(
+            ref: ExtReference,
+            parent: Extension,
+            settings: ExtensionSettings = loadSettings(ref),
+            dependencies: List<DependencyReference> = loadDependencies(settings)
+        ): Extension {
+            val loader: ClassLoader = resolve(ref, parent, dependencies)
 
             val ext: Extension = loader.loadClass(settings.extensionClass).getConstructor().newInstance() as Extension
 

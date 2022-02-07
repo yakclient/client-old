@@ -97,7 +97,7 @@ public fun init(yakDir: File, poolSize: Int) {
             }.toSet()
 
         val dep = DependencyNode(
-            CachedDependency.Descriptor(desc.name(), desc.version().orElse(null)?.toString()),
+            CachedDependency.Descriptor(desc.name().replace('.', '-'), desc.version().orElse(null)?.toString()),
             JpmDependencyReference(module),
             dependencies
         )

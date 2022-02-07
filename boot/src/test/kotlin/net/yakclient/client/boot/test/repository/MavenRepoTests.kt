@@ -18,4 +18,14 @@ class MavenRepoTests {
         println(dep?.uri?.path)
         println(dep?.dependants)
     }
+
+    @Test
+    fun `Test maven local repository handler`() {
+        val handler = RepositoryFactory.create(RepositorySettings(RepositoryType.MAVEN_LOCAL, null)) as RepositoryHandler<Dependency.Descriptor>
+
+        val dep = handler.find(checkNotNull(handler.loadDescription("net.yakclient:bmu-api:1.0-SNAPSHOT")) { "Failed to find dependency" })
+
+        println(dep?.uri?.path)
+        println(dep?.dependants)
+    }
 }

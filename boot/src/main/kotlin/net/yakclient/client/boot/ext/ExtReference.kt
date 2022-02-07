@@ -14,6 +14,8 @@ public interface ExtReference {
 
         public fun contains(name: String) : Boolean = get(name) == null
 
+        public fun listEntries() : List<Entry>
+
         public operator fun get(name: String) : Entry? = of(name)
     }
 

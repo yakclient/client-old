@@ -1,20 +1,20 @@
 package net.yakclient.client.boot.test.ext
 
-import com.typesafe.config.Config
-import io.github.config4k.ClassContainer
 import io.github.config4k.registerCustomType
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
 import net.yakclient.client.boot.ext.entryOfClass
 import net.yakclient.client.boot.setting.BasicExtensionSettings
-import net.yakclient.client.util.*
-import kotlin.test.Test
-
+import net.yakclient.client.util.UriCustomType
+import net.yakclient.client.util.child
+import net.yakclient.client.util.parent
+import net.yakclient.client.util.workingDir
 import java.lang.module.Configuration
 import java.lang.module.ModuleDescriptor
 import java.lang.module.ModuleFinder
 import java.lang.module.ModuleReference
 import java.nio.file.Path
+import kotlin.test.Test
 
 
 class ModuleLoaderTests {

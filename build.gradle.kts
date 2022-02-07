@@ -37,9 +37,15 @@ subprojects {
 
     dependencies {
         implementation(kotlin("stdlib"))
+        testImplementation("org.jetbrains.kotlin:kotlin-test:1.6.0")
     }
 
     kotlin {
         explicitApi()
+    }
+
+    tasks.test {
+        useJUnitPlatform()
+        jvmArgs = listOf("--add-reads","kotlin.stdlib=kotlinx.coroutines.core.jvm")
     }
 }

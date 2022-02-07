@@ -49,5 +49,7 @@ class TestDependencyGraph {
         val modules = listOf(1, 2).map { parentLayer.defineModulesWithOneLoader(config, ClassLoader.getSystemClassLoader()) }.map { it.modules().first() }
         println(modules)
     }
+
+
 }
 
