@@ -29,7 +29,7 @@ public fun InputStream.readInputStream(): ByteArray = ByteArrayOutputStream().us
 public fun URI.openStream(): InputStream = toURL().openStream()
 
 public fun URL.isReachable(): Boolean = try {
-    when(protocol) {
+    when (protocol) {
         "file" -> Files.exists(Path.of(file))
         else -> (openConnection() as? HttpURLConnection)?.responseCode == 200
     }
@@ -37,17 +37,19 @@ public fun URL.isReachable(): Boolean = try {
     false
 }
 
-public fun Path.createFile(): Boolean {
-    if (parent.toFile().mkdirs()) return true
-    return toFile().createNewFile()
-}
+public fun Path.make(): Boolean =
+    if (Files.isDirectory(this)) toFile().mkdirs()
+    else {
+        parent.toFile().mkdirs()
+        toFile().createNewFile()
+    }
 
 public suspend infix fun URI.downloadTo(loc: Path): Path = runCatching {
     // TODO add some sort of assertion for making sure the file gets full downloaded(that's an issue that happens every once in a while and it totally breaks everything)
 
     Channels.newChannel(openStream()).use { cin ->
         withContext(Dispatchers.IO) {
-            loc.createFile()
+            loc.make()
             FileOutputStream(loc.toFile()).use { fout ->
                 fout.channel.transferFrom(cin, 0, Long.MAX_VALUE)
             }
@@ -66,6 +68,18 @@ public fun URL.resourceAt(path: String): URI = URI(("$baseURL/$path"))
 
 public fun URL.urlAt(vararg paths: String): URL = URL(paths.fold(baseURL) { acc, it -> "$acc/$it" })
 
-public fun Path.toUrl() : URL = toUri().toURL()
+public fun Path.toUrl(): URL = toUri().toURL()
 
-public fun Path.children() : List<Path> = toFile().listFiles()?.map { it.toPath() } ?: ArrayList()
+public fun Path.children(): List<Path> = toFile().listFiles()?.map { it.toPath() } ?: ArrayList()
+
+public infix fun Path.resolve(name: String): Path = resolve(name)
+
+public infix fun Path.resolve(path: Path): Path = resolve(path)
+
+private fun deleteAllInternal(path: Path) : Boolean {
+    path.children().forEach(::deleteAllInternal)
+
+    return Files.deleteIfExists(path)
+}
+
+public fun Path.deleteAll() : Boolean = deleteAllInternal(this)

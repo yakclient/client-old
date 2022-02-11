@@ -1,6 +1,7 @@
 package net.yakclient.client.boot.test.dep
 
 import net.yakclient.client.boot.YakClient
+import net.yakclient.client.boot.dep.DependencyGraph
 import net.yakclient.client.boot.init
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.repository.RepositoryType
@@ -16,9 +17,9 @@ import kotlin.test.Test
 class TestDependencyGraph {
     @Test
     fun `Test dependency graph`() {
-        init(workingDir().parent("client").child("workingDir"), 10)
+        init(workingDir().parent("client").child("workingDir").toPath(), 10)
 
-        val ref = YakClient.theGraph.ofRepository(RepositorySettings(RepositoryType.MAVEN_CENTRAL, null))
+        val ref = DependencyGraph.ofRepository(RepositorySettings(RepositoryType.MAVEN_CENTRAL, null))
             .load("org.jetbrains:annotations:13.0")
 
         println(ref)
@@ -26,9 +27,9 @@ class TestDependencyGraph {
 
     @Test
     fun `Test local dependency loading`() {
-        init(workingDir().parent("client").child("workingDir"), 10)
+        init(workingDir().parent("client").child("workingDir").toPath(), 10)
 
-        val ref = YakClient.theGraph.ofRepository(RepositorySettings(RepositoryType.MAVEN_CENTRAL, null))
+        val ref = DependencyGraph.ofRepository(RepositorySettings(RepositoryType.MAVEN_CENTRAL, null))
             .load("com.google.guava:guava:31.0.1-jre")
 
         println(ref)

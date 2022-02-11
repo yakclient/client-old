@@ -7,19 +7,17 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.required
 import kotlinx.coroutines.newFixedThreadPoolContext
+import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.dep.CachedDependency
 import net.yakclient.client.boot.dep.DependencyGraph
 import net.yakclient.client.boot.dep.DependencyNode
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
-import net.yakclient.client.boot.internal.JpmDependencyGraph
-import net.yakclient.client.boot.internal.JpmDependencyReference
-import net.yakclient.client.util.FileArgument
-import net.yakclient.client.util.UriCustomType
-import net.yakclient.client.util.child
-import net.yakclient.client.util.immutableLateInit
-import java.io.File
+import net.yakclient.client.boot.internal.jpm.ResolvedJpm
+import net.yakclient.client.util.*
 import java.lang.module.ModuleDescriptor
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 import java.util.logging.Level
 import kotlin.coroutines.CoroutineContext
@@ -30,10 +28,7 @@ private const val DEFAULT_THREAD_POOL_SIZE = 10
 public object YakClient : Extension() {
     internal var innited: Boolean = false
     public var settings: BootSettings by immutableLateInit()
-    public var yakDir: File by immutableLateInit()
-    public var theGraph: DependencyGraph by immutableLateInit()
-
-    public var coroutineContext: CoroutineContext by immutableLateInit()
+    public var yakDir: Path by immutableLateInit()
 
     public fun exit(e: Exception, extra: String = "A critical error has occurred"): Nothing {
         logger.log(Level.SEVERE, extra)
@@ -48,36 +43,33 @@ private const val SETTINGS_NAME = "settings.conf"
 public fun main(args: Array<String>) {
     val parser = ArgParser("yakclient")
 
-    val yakDirectory by parser.option(FileArgument, "yakdirectory", "d").required()
+    val yakDirectory by parser.option(PathArgument, "yakdirectory", "d").required()
     val threadPoolSize by parser.option(ArgType.Int, "poolsize")
 
     parser.parse(args).run {
         init(yakDirectory, threadPoolSize ?: DEFAULT_THREAD_POOL_SIZE)
     }
 
-    ExtensionLoader.load(ExtensionLoader.find(YakClient.settings.apiLocation), YakClient).onLoad()
+    ExtensionLoader.load(ArchiveUtils.find(YakClient.settings.apiLocation), YakClient).onLoad()
+//    ExtensionLoader.load(ExtensionLoader.find(YakClient.settings.apiLocation), YakClient).onLoad()
 }
 
-public fun init(yakDir: File, poolSize: Int) {
+public fun init(yakDir: Path, poolSize: Int) {
     if (YakClient.innited) return
     YakClient.innited = true
 
     registerCustomType(UriCustomType())
 
-    val settings: BootSettings = ConfigFactory.parseFile(yakDir.child(SETTINGS_NAME)).extract("boot")
-
     YakClient.yakDir = yakDir
-    YakClient.settings = settings
-    YakClient.theGraph = JpmDependencyGraph()
-    YakClient.coroutineContext =
-        newFixedThreadPoolContext( // Should not use delicate API's but until something new is implemented this is it.
-            poolSize,
-            "YakClient Context"
-        )
+
+    YakClient.settings = ConfigFactory.parseFile((yakDir resolve SETTINGS_NAME).toFile()).extract("boot")
+
+    // Clear temp directory
+    YakClient.settings.tempPath.deleteAll()
 
     YakClient.init(
-        ClassLoader.getSystemClassLoader(),
-        settings,
+        ResolvedJpm(YakClient::class.java.module),
+        YakClient.settings,
         null
     )
 
@@ -98,7 +90,7 @@ public fun init(yakDir: File, poolSize: Int) {
 
         val dep = DependencyNode(
             CachedDependency.Descriptor(desc.name().replace('.', '-'), desc.version().orElse(null)?.toString()),
-            JpmDependencyReference(module),
+            ResolvedJpm(module),
             dependencies
         )
         loaded[dep.desc.artifact] = dep
@@ -106,6 +98,6 @@ public fun init(yakDir: File, poolSize: Int) {
     }
 
     val map = YakClient::class.java.module.layer.modules().map(::loadDependencies)
-    map.forEach(YakClient.theGraph::forceAdd)
+    map.forEach(DependencyGraph::forceAdd)
 }
 

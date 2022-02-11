@@ -7,6 +7,7 @@ import io.github.config4k.ClassContainer
 import io.github.config4k.CustomType
 import java.io.File
 import java.net.URI
+import java.nio.file.Path
 
 public interface ReadOnlyType : CustomType {
     override fun testToConfig(obj: Any): Nothing = throw UnsupportedOperationException()
@@ -39,3 +40,4 @@ public fun Config.writeTo(
     file: File,
     options: ConfigRenderOptions = ConfigRenderOptions.concise().setJson(false).setFormatted(true)
 ): Unit = file.writeText(this.root().render(options))
+

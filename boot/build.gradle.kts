@@ -25,10 +25,15 @@ application {
     mainClass.set("net.yakclient.client.boot.YakClientKt")
     mainModule.set("yakclient.client.boot")
 
-    applicationDefaultJvmArgs = listOf("--add-reads","kotlin.stdlib=kotlinx.coroutines.core.jvm")
+    applicationDefaultJvmArgs = listOf(
+        "--add-reads", "kotlin.stdlib=kotlinx.coroutines.core.jvm",
+        "-Djava.library.path=/Users/durgan/IdeaProjects/yakclient/yak-minecraft/lib/natives/osx",
+        "--add-opens", "java.base/java.lang=yak.minecraft"
+    )
 }
 
+
 tasks.run {
-    this.run
+//    this.run
 }
 

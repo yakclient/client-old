@@ -7,7 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.yakclient.client.boot.YakClient
-import net.yakclient.client.util.createFile
+import net.yakclient.client.util.make
 import net.yakclient.client.util.downloadTo
 import net.yakclient.client.util.writeTo
 import java.nio.file.Files
@@ -27,7 +27,7 @@ internal object DependencyCache {
     init {
         val metaFile = cacheMeta.toFile()
 
-        if (cacheMeta.createFile()) setOf<CachedDependency>().toConfig(META_ROOT_NAME).writeTo(metaFile)
+        if (cacheMeta.make()) setOf<CachedDependency>().toConfig(META_ROOT_NAME).writeTo(metaFile)
 
         all = ConfigFactory.parseFile(metaFile).extract<Set<CachedDependency>>(META_ROOT_NAME)
             .associateByTo(ConcurrentHashMap()) { it.desc }

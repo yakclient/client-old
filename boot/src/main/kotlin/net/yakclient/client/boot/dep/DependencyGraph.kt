@@ -1,17 +1,17 @@
 package net.yakclient.client.boot.dep
 
 import net.yakclient.client.boot.exception.CyclicDependenciesException
+import net.yakclient.client.boot.archive.ArchiveUtils
+import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
-import java.net.URI
 import java.nio.file.Path
 import java.util.logging.Level
 import java.util.logging.Logger
-import kotlin.io.path.toPath
 
 
-public abstract class DependencyGraph {
+public object DependencyGraph {
     //    private val nameTo: MutableMap<CachedDependency.Descriptor, DependencyNode> = HashMap()
 //    private val _all: MutableSet<CachedDependency.Descriptor> = HashSet()
     private val logger: Logger = Logger.getLogger(DependencyGraph::class.simpleName)
@@ -49,12 +49,12 @@ public abstract class DependencyGraph {
     public fun ofRepository(settings: RepositorySettings): DependencyLoader<*> =
         ofRepository(RepositoryFactory.create(settings))
 
-    public abstract fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>): DependencyLoader<T>
+    public fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>): DependencyLoader<T> = DependencyLoader(handler)
 
-    public abstract inner class DependencyLoader<T : Dependency.Descriptor>(
+    public class DependencyLoader<T : Dependency.Descriptor>(
         private val repo: RepositoryHandler<T>
     ) {
-        public fun load(name: String): DependencyReference? {
+        public fun load(name: String): ResolvedArchive? {
             return loadInternal(repo.loadDescription(name) ?: return null, null)?.reference
         }
 
@@ -118,14 +118,13 @@ public abstract class DependencyGraph {
 //            }
         }
 
-
-        protected abstract fun loadInternal(dep: Path, dependants: List<DependencyReference>): DependencyReference
+        private fun loadInternal(dep: Path, dependants: List<ResolvedArchive>): ResolvedArchive = ArchiveUtils.resolve(ArchiveUtils.find(dep), dependants)
     }
 }
 
 internal data class DependencyNode(
     val desc: CachedDependency.Descriptor,
-    val reference: DependencyReference,
+    val reference: ResolvedArchive,
     val children: Set<DependencyNode>,
 ) {
     override fun equals(other: Any?): Boolean {

@@ -19,7 +19,7 @@ internal open class LocalRepositoryHandler(
 ) : RepositoryHandler<LocalDescriptor> {
     private val path: Path = Path.of(run {
         val it: String = settings.path!!
-        if (it.startsWith("~/")) "${YakClient.yakDir.path}${it.removePrefix("~")}" else it
+        if (it.startsWith("~/")) "${YakClient.yakDir}${it.removePrefix("~")}" else it
     })
     private val meta = ConfigFactory.parseFile(path.resolve(META_NAME).toFile()).extract<Map<String, CachedDependency>>()
     private val dependencies: Map<Dependency.Descriptor, Dependency> =  object : HashMap<Dependency.Descriptor, Dependency>() {
