@@ -1,8 +1,11 @@
 package net.yakclient.client.boot.internal.jpm
 
 import net.yakclient.client.boot.YakClient
+import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveResolver
+import net.yakclient.client.boot.archive.ClassLoaderProvider
 import net.yakclient.client.boot.archive.ResolvedArchive
+import net.yakclient.client.util.LazyMap
 import net.yakclient.client.util.make
 import net.yakclient.client.util.resolve
 import java.io.FileOutputStream
@@ -14,20 +17,22 @@ import java.nio.file.Files
 import java.util.*
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
-import kotlin.reflect.KClass
+import kotlin.collections.HashSet
 
-private const val TEMP_JAR_SUFFIX = "YAK-ALTERED"
+internal class JpmResolver : ArchiveResolver<JpmReference> {
+    override fun resolve(
+        refs: List<JpmReference>,
+        clProvider: ClassLoaderProvider<JpmReference>,
+        parents: List<ResolvedArchive>
+    ): List<ResolvedArchive> {
+        val modulesByName = refs.associateBy { it.descriptor().name() }
 
-public class JpmResolver : ArchiveResolver<JpmReference> {
-    override val accepts: KClass<JpmReference> = JpmReference::class
+        val finder = object : ModuleFinder {
+            override fun find(name: String): Optional<ModuleReference> = Optional.ofNullable(modulesByName[name])
 
-    override fun resolve(ref: JpmReference, parents: List<ResolvedArchive>): ResolvedArchive {
-        val finder = loadFinder(ref)
-//        val finder = ModuleFinder.of(dep)
-//        assert(finder.findAll().size == 1) { "Only able to load one dependency at a time!" }
-//        val reference = finder.findAll().first()
-
-        assert(
+            override fun findAll(): MutableSet<ModuleReference> = refs.toMutableSet()
+        }
+        for (ref in refs) assert(
             ref.descriptor().requires()
                 .filterNot { it.modifiers().contains(ModuleDescriptor.Requires.Modifier.STATIC) }
                 .all { r ->
@@ -40,26 +45,48 @@ public class JpmResolver : ArchiveResolver<JpmReference> {
             "A Dependency of ${ref.descriptor().name()} is not in the graph!"
         }
 
-        val references = parents.filterIsInstance<ResolvedJpm>().takeIf { it.size == parents.size }
-            ?: throw IllegalArgumentException("All parents must be of type ${ResolvedJpm::class.simpleName}")
+        // Mapping to a HashSet to avoid multiple configuration that are the same(they do not override equals and hashcode but using the object ID's should be good enough)
+        val parentLayers =
+            parents.filterIsInstance<ResolvedJpm>().mapTo(HashSet()) { it.layer }
 
         val configuration = Configuration.resolve(
             finder,
-            references.map(ResolvedJpm::configuration) + ModuleLayer.boot().configuration(),
+            parentLayers.map { it.configuration() } + ModuleLayer.boot().configuration(),
             ModuleFinder.of(),
-            listOf(ref.name)
+            finder.findAll().map(ModuleReference::descriptor).map(ModuleDescriptor::name)
         )
 
-        // val loader = JpmLoader(YakClient.loader, ref)
-        //
-        //        val controller = ModuleLayer.defineModules(
-        //            configuration,
-        //            references.map(ResolvedJpm::layer) + ModuleLayer.boot()
-        //        ) { loader }
-        val controller = ModuleLayer.defineModulesWithOneLoader(
+        val loaders = LazyMap<String, ClassLoader> {
+            clProvider(
+                modulesByName[it] ?: throw IllegalStateException(
+                    "Error occurred when trying to create a class loader for module $it because module $it is not recognized. Only suppose to load modules for ${
+                        refs.joinToString(
+                            prefix = "[",
+                            postfix = "]",
+                            transform = ArchiveReference::name
+                        )
+                    }"
+                ),
+            )
+//            JpmLoader(
+//                parent,
+//                modulesByName[it] ?: throw IllegalStateException(
+//                    "Error occurred when trying to create a class loader for module $it because module $it is not recognized. Only suppose to load modules for ${
+//                        refs.joinToString(
+//                            prefix = "[",
+//                            postfix = "]",
+//                            transform = ArchiveReference::name
+//                        )
+//                    }"
+//                ),
+//                parents.filterNot { c -> c.name == it } as List<ResolvedJpm>
+//            )
+        }
+
+        val controller = ModuleLayer.defineModules(
             configuration,
-            references.map(ResolvedJpm::layer) + ModuleLayer.boot(),
-            YakClient.loader
+            parentLayers.toList() + ModuleLayer.boot(),
+            loaders::get
         )
 
         val layer = controller.layer()
@@ -70,25 +97,31 @@ public class JpmResolver : ArchiveResolver<JpmReference> {
             }
         }
 
-        return ResolvedJpm(layer.modules().first())
+        return layer.modules().map(::ResolvedJpm)
     }
 
-    private fun loadFinder(ref: JpmReference): ModuleFinder = if (!ref.modified) ProvidedModuleFinder(ref) else {
+//    private fun loadFinder(refs: List<JpmReference>): ModuleFinder = ProvidedModuleFinder(refs.map(::loadRef))
+
+    private fun loadRef(ref: JpmReference): ModuleReference = if (!ref.modified) ref else {
         val temp = YakClient.settings.moduleTempPath
         val desc = ref.descriptor()
-        val jar = temp resolve "${desc.name().replace('.', '-')}${desc.rawVersion().map { "-$it-$TEMP_JAR_SUFFIX" }.orElse("")}.jar"
+        val jar = temp resolve "${desc.name().replace('.', '-')}${
+            desc.rawVersion().map { "-$it" }.orElse("")
+        }.jar"
 
         Files.deleteIfExists(jar)
         jar.make()
 
 
-       JarOutputStream(FileOutputStream(jar.toFile())).use { target ->
+        JarOutputStream(FileOutputStream(jar.toFile())).use { target ->
             ref.reader.entries().forEach { e ->
                 val entry = JarEntry(e.name)
 
                 target.putNextEntry(entry)
 
                 val eIn = e.asInputStream
+
+                //Stolen from https://stackoverflow.com/questions/1281229/how-to-use-jaroutputstream-to-create-a-jar-file
                 val buffer = ByteArray(1024)
 
                 while (true) {
@@ -105,15 +138,24 @@ public class JpmResolver : ArchiveResolver<JpmReference> {
 
         assert(Files.exists(jar)) { "Failed to write jar to temp directory!" }
 
-        ModuleFinder.of(jar)
+        ModuleFinder.of(jar).find(ref.name)
+            .orElseThrow { IllegalArgumentException("Archive reference that should be present is not! Path: $jar") }
     }
+
+
 }
 
-private class ProvidedModuleFinder(
-    private val ref: JpmReference
-) : ModuleFinder {
-    override fun find(name: String): Optional<ModuleReference> =
-        if (ref.descriptor().name() == name) Optional.of(ref) else Optional.empty()
 
-    override fun findAll(): MutableSet<ModuleReference> = mutableSetOf(ref)
+private class ProvidedModuleFinder(
+    _refs: List<ModuleReference>
+) : ModuleFinder {
+    private val refs: Map<String, ModuleReference> = _refs.associateBy { it.descriptor().name() }
+
+    override fun find(name: String): Optional<ModuleReference> {
+        val ref = refs[name]
+        return if (ref?.descriptor()?.name() == name) Optional.of(ref)
+        else Optional.empty()
+    }
+
+    override fun findAll(): MutableSet<ModuleReference> = refs.values.toMutableSet()
 }

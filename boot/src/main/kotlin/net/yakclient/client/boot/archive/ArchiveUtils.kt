@@ -2,19 +2,31 @@ package net.yakclient.client.boot.archive
 
 import java.nio.file.Path
 import java.util.*
-import kotlin.reflect.full.isSuperclassOf
+
 
 public object ArchiveUtils {
-    private val provider: ArchiveFinder<*> = ServiceLoader.load(ArchiveFinder::class.java).firstOrNull()
+    private val _finder: ArchiveFinder<*> = ServiceLoader.load(ArchiveFinder::class.java).firstOrNull()
         ?: throw IllegalStateException("Not able to load the ArchiveProvider, make sure all services are declared!")
-    private val resolver: ArchiveResolver<ArchiveReference> =
-        ServiceLoader.load(ArchiveResolver::class.java).firstOrNull() as? ArchiveResolver<ArchiveReference>
-            ?: throw IllegalStateException("Not able to load the ArchiveResolver, make sure all services are declared!")
+    private val _resolver = ServiceLoader.load(ArchiveResolver::class.java)
+        .firstOrNull()
+        ?: throw IllegalStateException("Not able to load the ArchiveResolver, make sure all services are declared!")
 
-    public fun find(path: Path): ArchiveReference = provider.find(path)
+    public fun find(path: Path, finder: ArchiveFinder<*> = _finder): ArchiveReference = finder.find(path)
 
-    public fun resolve(reference: ArchiveReference, parents: List<ResolvedArchive>): ResolvedArchive {
-        check(resolver.accepts.isSuperclassOf(reference::class))
-        return resolver.resolve(reference, parents)
-    }
+    @JvmOverloads
+    public fun <T : ArchiveReference> resolve(
+        refs: List<T>,
+        parents: List<ResolvedArchive> = ArrayList(),
+        resolver: ArchiveResolver<T> = _resolver as ArchiveResolver<T>,
+        clProvider: ClassLoaderProvider<T>,
+    ): List<ResolvedArchive> =
+        resolver.resolve(refs, clProvider, parents)
+
+    @JvmOverloads
+    public fun <T: ArchiveReference> resolve(
+        ref: T,
+        parents: List<ResolvedArchive> = ArrayList(),
+        resolver: ArchiveResolver<T> = _resolver as ArchiveResolver<T>,
+        clProvider: ClassLoaderProvider<T>,
+    ): ResolvedArchive = resolve(listOf(ref), parents, resolver, clProvider).first()
 }

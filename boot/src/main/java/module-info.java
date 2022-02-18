@@ -30,6 +30,7 @@ module yakclient.client.boot {
     exports net.yakclient.client.boot.dep;
     exports net.yakclient.client.boot.repository;
     exports net.yakclient.client.boot.archive;
+    exports net.yakclient.client.boot.loader;
 
     opens net.yakclient.client.boot.repository to kotlin.reflect; // For kotlin CLI
     opens net.yakclient.client.boot.internal to java.base; // For service instantiation
@@ -38,17 +39,9 @@ module yakclient.client.boot {
 
     uses ArchiveResolver;
     uses ArchiveFinder;
+    uses RepositoryProvider;
 
     provides ArchiveResolver with JpmResolver;
     provides ArchiveFinder with JpmFinder;
-//    uses ExtensionLoader.Finder;
-//    uses ExtensionLoader.Resolver;
-    uses RepositoryProvider;
-//    uses DependencyGraph;
-//
-//    provides ExtensionLoader.Finder with JpmFinder;
-//    provides ExtensionLoader.Resolver with ExtJpmResolver;
     provides RepositoryProvider with InternalRepoProvider;
-//
-//    provides net.yakclient.client.boot.dep.DependencyGraph with net.yakclient.client.boot.internal.JpmDependencyGraph;
 }

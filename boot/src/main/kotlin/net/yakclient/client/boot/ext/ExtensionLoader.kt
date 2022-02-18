@@ -49,9 +49,10 @@ public class ExtensionLoader private constructor() {
             settings: ExtensionSettings = loadSettings(ref),
             dependencies: List<ResolvedArchive> = loadDependencies(settings)
         ): Extension {
-            val archive: ResolvedArchive = ArchiveUtils.resolve(ref, dependencies + parent.ref)
+            val archive: ResolvedArchive = ArchiveUtils.resolve(ref, parent.loader, dependencies + parent.ref)
 
-            val ext: Extension = archive.classloader.loadClass(settings.extensionClass).getConstructor().newInstance() as Extension
+            val ext: Extension =
+                archive.classloader.loadClass(settings.extensionClass).getConstructor().newInstance() as Extension
 
             ext.init(archive, settings, parent)
 

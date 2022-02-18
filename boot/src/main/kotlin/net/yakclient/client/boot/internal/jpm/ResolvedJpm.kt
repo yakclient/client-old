@@ -1,6 +1,7 @@
 package net.yakclient.client.boot.internal.jpm
 
 import net.yakclient.client.boot.YakClient
+import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ResolvedArchive
 import java.lang.module.Configuration
 

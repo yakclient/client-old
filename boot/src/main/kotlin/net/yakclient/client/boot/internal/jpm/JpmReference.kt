@@ -16,10 +16,8 @@ public class JpmReference(
     delegate: ModuleReference,
 ) : ArchiveReference, ModuleReference(
     delegate.descriptor(),
-    null
+    delegate.location().orElseGet { null }
 ) {
-    //    delegate.location()
-//        .orElseThrow { IllegalArgumentException("JpmReference must have a URI associated with its delegate!") }) {
     private val overrides: MutableMap<String, ArchiveReference.Entry> = HashMap()
 
     override val name: String = delegate.descriptor().name()

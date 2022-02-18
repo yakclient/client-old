@@ -1,5 +1,6 @@
 package net.yakclient.client.boot.dep
 
+import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.exception.CyclicDependenciesException
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
@@ -118,7 +119,10 @@ public object DependencyGraph {
 //            }
         }
 
-        private fun loadInternal(dep: Path, dependants: List<ResolvedArchive>): ResolvedArchive = ArchiveUtils.resolve(ArchiveUtils.find(dep), dependants)
+        private fun loadInternal(dep: Path, dependants: List<ResolvedArchive>): ResolvedArchive {
+            val ref = ArchiveUtils.find(dep)
+            return ArchiveUtils.resolve(ref, YakClient.loader, dependants)
+        }
     }
 }
 

@@ -42,6 +42,7 @@ internal object DependencyCache {
 
     fun isCached(descriptor: Dependency.Descriptor) = all.contains(descriptor)
 
+    // TODO add checksum support
     fun cache(dependency: Dependency): CachedDependency = runBlocking {
         if (all.contains(dependency.desc)) return@runBlocking all[dependency.desc]!!
 

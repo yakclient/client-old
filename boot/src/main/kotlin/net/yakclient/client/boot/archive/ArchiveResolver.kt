@@ -1,9 +1,7 @@
 package net.yakclient.client.boot.archive
 
-import kotlin.reflect.KClass
+public fun interface ClassLoaderProvider<R: ArchiveReference> : (R) -> ClassLoader
 
 public interface ArchiveResolver<T : ArchiveReference> {
-    public val accepts: KClass<T>
-
-    public fun resolve(ref: T, parents: List<ResolvedArchive>): ResolvedArchive
+    public fun resolve(refs: List<T>, clProvider: ClassLoaderProvider<T>, parents: List<ResolvedArchive>): List<ResolvedArchive>
 }

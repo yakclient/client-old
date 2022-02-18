@@ -50,13 +50,21 @@ public fun main(args: Array<String>) {
         init(yakDirectory, threadPoolSize ?: DEFAULT_THREAD_POOL_SIZE)
     }
 
-    ExtensionLoader.load(ArchiveUtils.find(YakClient.settings.apiLocation), YakClient).onLoad()
-//    ExtensionLoader.load(ExtensionLoader.find(YakClient.settings.apiLocation), YakClient).onLoad()
+    val run = runCatching {
+        ExtensionLoader.load(ArchiveUtils.find(YakClient.settings.apiLocation), YakClient).onLoad()
+    }
+
+    if (run.isFailure) {
+        YakClient.logger.log(Level.INFO, "Error occurred, Exiting gracefully")
+        run.exceptionOrNull()?.printStackTrace()
+    } else YakClient.logger.log(Level.INFO, "Successfully Quit")
 }
 
 public fun init(yakDir: Path, poolSize: Int) {
     if (YakClient.innited) return
     YakClient.innited = true
+
+//    System.setSecurityManager(SecurityManager())
 
     registerCustomType(UriCustomType())
 
