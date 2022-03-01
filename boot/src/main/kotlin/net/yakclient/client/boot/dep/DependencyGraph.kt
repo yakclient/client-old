@@ -1,13 +1,15 @@
 package net.yakclient.client.boot.dep
 
 import net.yakclient.client.boot.YakClient
+import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.exception.CyclicDependenciesException
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
+import net.yakclient.client.boot.loader.ArchiveComponent
+import net.yakclient.client.boot.loader.ArchiveLoader
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
-import java.nio.file.Path
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -36,10 +38,10 @@ public object DependencyGraph {
 //            } ?: throw IllegalStateException("Failed to find service provider for ${this::class.simpleName}")
 //    }
 
-    internal fun forceAdd(node: DependencyNode) {
-        cache.cache(CachedDependency(Path.of(""), node.children.map { c -> CachedDependency.Descriptor(c.desc.artifact, c.desc.version) }, CachedDependency.Descriptor(node.desc.artifact, node.desc.version)))
-        graph[node.desc] = node
-    }
+//    internal fun forceAdd(node: DependencyNode) {
+//        cache.cache(CachedDependency(Path.of(""), node.children.map { c -> CachedDependency.Descriptor(c.desc.artifact, c.desc.version) }, CachedDependency.Descriptor(node.desc.artifact, node.desc.version)))
+//        graph[node.desc] = node
+//    }
 //    internal fun add(node: DependencyNode) {
 //        val desc = node.toResolveDesc()
 //        if (nameTo.contains(desc)) return
@@ -47,19 +49,24 @@ public object DependencyGraph {
 //        _all.add(desc)
 //    }
 
+    internal fun force(node: Dependency) : Unit {
+
+    }
+
     public fun ofRepository(settings: RepositorySettings): DependencyLoader<*> =
         ofRepository(RepositoryFactory.create(settings))
 
-    public fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>): DependencyLoader<T> = DependencyLoader(handler)
+    public fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>): DependencyLoader<T> =
+        DependencyLoader(handler)
 
-    public class DependencyLoader<T : Dependency.Descriptor>(
+    public open class DependencyLoader<T : Dependency.Descriptor>(
         private val repo: RepositoryHandler<T>
     ) {
         public fun load(name: String): ResolvedArchive? {
             return loadInternal(repo.loadDescription(name) ?: return null, null)?.reference
         }
 
-        internal fun loadInternal(desc: T, trace: DependencyTrace?): DependencyNode? {
+        private fun loadInternal(desc: T, trace: DependencyTrace?, ): DependencyNode? {
             val name = desc.artifact
 
             logger.log(Level.INFO, "Loading dependency: ${desc.artifact}-${desc.version}")
@@ -97,7 +104,7 @@ public object DependencyGraph {
 
                 val dependencies = children.filterNot { c -> children.any { it.provides(c.desc) } }
 
-                val reference = loadInternal(cached.path, dependencies.map(DependencyNode::reference))
+                val reference = resolve(ArchiveUtils.find(cached.path), dependencies.map(DependencyNode::reference))
 
                 val node = DependencyNode(cached.desc, reference, children)
 
@@ -105,46 +112,35 @@ public object DependencyGraph {
 
                 node
             }
-//            return desc.takeIf { _all.contains(resolved) }?.let { nameTo[resolved] } ?: run {
-////                _all.add(resolved)
-////                val dependency = repo.find(desc) ?: return null
-////
-////
-//
-//                DependencyNode(
-//                    CachedDependency.Descriptor(desc.artifact, desc.version),
-//                    reference,
-//                    others,
-//                ).also(::add)
-//            }
         }
 
-        private fun loadInternal(dep: Path, dependants: List<ResolvedArchive>): ResolvedArchive {
-            val ref = ArchiveUtils.find(dep)
-            return ArchiveUtils.resolve(ref, YakClient.loader, dependants)
+        public open fun resolve(archive: ArchiveReference, dependants: List<ResolvedArchive>): ResolvedArchive {
+            val loader = ArchiveLoader(YakClient.loader, dependants.map(::ArchiveComponent), archive)
+
+            return ArchiveUtils.resolve(archive, loader, dependants)
         }
     }
 }
 
-internal data class DependencyNode(
+internal class DependencyNode(
     val desc: CachedDependency.Descriptor,
     val reference: ResolvedArchive,
-    val children: Set<DependencyNode>,
+    private val children: Set<DependencyNode>,
 ) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+//    override fun equals(other: Any?): Boolean {
+//        if (this === other) return true
+//        if (javaClass != other?.javaClass) return false
+//
+//        other as DependencyNode
+//
+//        if (desc != other.desc) return false
+//
+//        return true
+//    }
+//
+//    override fun hashCode(): Int = desc.hashCode()
 
-        other as DependencyNode
-
-        if (desc != other.desc) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int = desc.hashCode()
-
-    fun provides(other: Dependency.Descriptor) : Boolean = children.any { it.desc == other || it.provides(other) }
+    fun provides(other: Dependency.Descriptor): Boolean = children.any { it.desc == other || it.provides(other) }
 }
 
 internal data class DependencyTrace(

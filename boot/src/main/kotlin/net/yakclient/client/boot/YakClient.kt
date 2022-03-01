@@ -6,21 +6,22 @@ import io.github.config4k.registerCustomType
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.required
-import kotlinx.coroutines.newFixedThreadPoolContext
+import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
-import net.yakclient.client.boot.dep.CachedDependency
+import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.dep.DependencyGraph
-import net.yakclient.client.boot.dep.DependencyNode
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
-import net.yakclient.client.boot.internal.jpm.ResolvedJpm
+import net.yakclient.client.boot.internal.jpm.ResolvedJpmArchive
+import net.yakclient.client.boot.internal.maven.MavenDescriptor
+import net.yakclient.client.boot.repository.RepositoryFactory
+import net.yakclient.client.boot.repository.RepositoryHandler
+import net.yakclient.client.boot.repository.RepositorySettings
+import net.yakclient.client.boot.repository.RepositoryType
 import net.yakclient.client.util.*
-import java.lang.module.ModuleDescriptor
-import java.nio.file.Files
+import java.net.URI
 import java.nio.file.Path
-import java.util.*
 import java.util.logging.Level
-import kotlin.coroutines.CoroutineContext
 import kotlin.system.exitProcess
 
 private const val DEFAULT_THREAD_POOL_SIZE = 10
@@ -76,36 +77,78 @@ public fun init(yakDir: Path, poolSize: Int) {
     YakClient.settings.tempPath.deleteAll()
 
     YakClient.init(
-        ResolvedJpm(YakClient::class.java.module),
+        ResolvedJpmArchive(
+            YakClient::class.java.module,
+            object : ArchiveReference {
+                override val name: String = "yakclient.client.boot"
+                override val location: URI
+                    get() = throw UnsupportedOperationException()
+                override val reader: ArchiveReference.Reader
+                    get() = throw UnsupportedOperationException()
+                override val writer: ArchiveReference.Writer
+                    get() = throw UnsupportedOperationException()
+                override val modified: Boolean = false
+            }),
         YakClient.settings,
         null
     )
 
-    val loaded = HashMap<String, DependencyNode>()
+//    val mvn = RepositoryFactory.create(RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)) as RepositoryHandler<Dependency.Descriptor>
+//
+//    mvn.find(mvn.loadDescription("")!!)
 
-    fun loadDependencies(module: Module): DependencyNode {
-        val desc = module.descriptor
-        val dependencies: Set<DependencyNode> = desc.requires()
-            .asSequence()
-            .map(ModuleDescriptor.Requires::name)
-            .map(ModuleLayer.boot()::findModule)
-            .filter(Optional<Module>::isPresent)
-            .map(Optional<Module>::get)
-            .map { m ->
-                if (loaded.contains(m.name)) loaded[m.name]!!
-                else loadDependencies(m)
-            }.toSet()
-
-        val dep = DependencyNode(
-            CachedDependency.Descriptor(desc.name().replace('.', '-'), desc.version().orElse(null)?.toString()),
-            ResolvedJpm(module),
-            dependencies
-        )
-        loaded[dep.desc.artifact] = dep
-        return dep
+    val dependencyPopulator = object : DependencyGraph.DependencyLoader<MavenDescriptor>(
+        RepositoryFactory.create(
+            RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)
+        ) as RepositoryHandler<MavenDescriptor>
+    ) {
+        override fun resolve(archive: ArchiveReference, dependants: List<ResolvedArchive>): ResolvedArchive {
+            return ResolvedJpmArchive(
+                ModuleLayer.boot().modules().find {
+                    val n = archive.name
+                    it.name == n
+//                    it.name == (if (n.startsWith("kotlinx")) "$n.jvm" else n) // Absolutely terrible, but i dont want to find out why kotlinx things randomly have .jvm after them...
+                } ?: return super.resolve(archive, dependants),
+                archive
+            )
+        }
     }
 
-    val map = YakClient::class.java.module.layer.modules().map(::loadDependencies)
-    map.forEach(DependencyGraph::forceAdd)
+    dependencyPopulator.load("org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4")
+    dependencyPopulator.load("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.0")
+    dependencyPopulator.load("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
+    dependencyPopulator.load("io.github.config4k:config4k:0.4.2")
+    dependencyPopulator.load("com.typesafe:config:1.4.1")
+
+//    val loaded = HashMap<String, DependencyNode>()
+
+//    fun loadDependencies(module: Module): DependencyNode {
+//        val desc = module.descriptor
+//        val dependencies: Set<DependencyNode> = desc.requires()
+//            .asSequence()
+//            .map(ModuleDescriptor.Requires::name)
+//            .map(ModuleLayer.boot()::findModule)
+//            .filter(Optional<Module>::isPresent)
+//            .map(Optional<Module>::get)
+//            .map { m ->
+//                if (loaded.contains(m.name)) loaded[m.name]!!
+//                else loadDependencies(m)
+//            }.toSet()
+//
+//        val dep = DependencyNode(
+//            CachedDependency.Descriptor(desc.name().replace('.', '-'), desc.version().orElse(null)?.toString()),
+//            ResolvedJpm(module),
+//            dependencies
+//        )
+//        loaded[dep.desc.artifact] = dep
+//        return dep
+//    }
+//
+    val map = ModuleLayer.boot().modules()
+        .filterNot { it.name.startsWith("java") }
+        .filterNot { it.name.startsWith("jdk") }
+        .filterNot { it.name.startsWith("yakclient") }
+//        .map(::loadDependencies)
+//    map.forEach(DependencyGraph::forceAdd)
 }
 

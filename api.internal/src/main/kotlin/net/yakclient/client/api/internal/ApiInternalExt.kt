@@ -4,6 +4,7 @@ import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ArchiveUtils.resolve
 import net.yakclient.client.boot.archive.patch
+import net.yakclient.client.boot.archive.removeModules
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
 import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
@@ -22,11 +23,8 @@ public class ApiInternalExt : Extension() {
 
         val loader = ClConglomerate(loader, (mcDeps + reference).map(::ArchiveConglomerateProvider))
 
-        val resolvedDeps = resolve(mcDeps) { loader }
-
         val minecraft = resolve(
-            reference,
-            resolvedDeps,
+             mcDeps + reference,
         ) { loader }
         val settings = ExtensionLoader.loadSettings(ext)
 
@@ -35,6 +33,6 @@ public class ApiInternalExt : Extension() {
             this,
             settings = settings,
             dependencies = ExtensionLoader.loadDependencies(settings)
-                .let { it.toMutableList().also { m -> m.add(minecraft) } }).onLoad()
+                .let { it.toMutableList().also { m -> m.addAll(minecraft) } }).onLoad()
     }
 }

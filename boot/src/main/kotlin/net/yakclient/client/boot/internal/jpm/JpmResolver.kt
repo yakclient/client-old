@@ -39,7 +39,7 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
                     fun Configuration.provides(name: String): Boolean =
                         modules().any { it.name() == name } || parents().any { it.provides(name) }
 
-                    parents.any { d -> r.name() == d.name || (d as ResolvedJpm).configuration.provides(r.name()) } || ModuleLayer.boot()
+                    parents.any { d -> r.name() == d.name || (d as ResolvedJpmArchive).configuration.provides(r.name()) } || ModuleLayer.boot()
                         .modules().any { d -> r.name() == d.name }
                 }) {
             "A Dependency of ${ref.descriptor().name()} is not in the graph!"
@@ -47,7 +47,7 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
 
         // Mapping to a HashSet to avoid multiple configuration that are the same(they do not override equals and hashcode but using the object ID's should be good enough)
         val parentLayers =
-            parents.filterIsInstance<ResolvedJpm>().mapTo(HashSet()) { it.layer }
+            parents.filterIsInstance<ResolvedJpmArchive>().mapTo(HashSet()) { it.layer }
 
         val configuration = Configuration.resolve(
             finder,
@@ -97,7 +97,7 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
             }
         }
 
-        return layer.modules().map(::ResolvedJpm)
+        return layer.modules().map { m -> ResolvedJpmArchive(m, refs.first { it.name == m.name }) }//.map(::ResolvedJpm)
     }
 
 //    private fun loadFinder(refs: List<JpmReference>): ModuleFinder = ProvidedModuleFinder(refs.map(::loadRef))

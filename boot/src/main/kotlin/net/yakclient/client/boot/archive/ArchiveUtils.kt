@@ -23,10 +23,10 @@ public object ArchiveUtils {
         resolver.resolve(refs, clProvider, parents)
 
     @JvmOverloads
-    public fun <T: ArchiveReference> resolve(
+    public fun <T : ArchiveReference> resolve(
         ref: T,
+        classloader: ClassLoader,
         parents: List<ResolvedArchive> = ArrayList(),
         resolver: ArchiveResolver<T> = _resolver as ArchiveResolver<T>,
-        clProvider: ClassLoaderProvider<T>,
-    ): ResolvedArchive = resolve(listOf(ref), parents, resolver, clProvider).first()
+    ): ResolvedArchive = resolve(listOf(ref), parents, resolver) { classloader }.first()
 }

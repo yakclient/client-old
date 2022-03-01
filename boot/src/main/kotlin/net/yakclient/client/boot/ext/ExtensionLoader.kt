@@ -5,6 +5,9 @@ import net.yakclient.client.boot.dep.DependencyGraph
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
+import net.yakclient.client.boot.loader.ArchiveComponent
+import net.yakclient.client.boot.loader.ArchiveLoader
+import net.yakclient.client.boot.loader.IntegratedLoader
 import net.yakclient.client.boot.setting.BasicExtensionSettings
 import net.yakclient.client.boot.setting.ExtensionSettings
 import net.yakclient.client.util.toConfig
@@ -12,20 +15,6 @@ import java.util.*
 
 public class ExtensionLoader private constructor() {
     public companion object {
-//        private inline fun <reified T : Any> find(search: (T) -> Boolean = { true }): T =
-//            ServiceLoader.load(T::class.java).first(search)
-
-//        @JvmStatic
-//        public fun find(path: Path): ArchiveReference = find<Finder<ArchiveReference>>().find(path)
-//
-//        @JvmStatic
-//        public fun resolve(ref: ArchiveReference, parent: Extension, dependencies: List<DependencyReference>): ClassLoader =
-//            find<Resolver<ArchiveReference>> { it.accepts.isAssignableFrom(ref::class.java) }.resolve(
-//                ref,
-//                parent,
-//                dependencies
-//            )
-
         @JvmStatic
         public fun loadDependencies(settings: ExtensionSettings): List<ResolvedArchive> {
             val repositories = settings.repositories?.map(DependencyGraph::ofRepository) ?: listOf()
@@ -49,7 +38,9 @@ public class ExtensionLoader private constructor() {
             settings: ExtensionSettings = loadSettings(ref),
             dependencies: List<ResolvedArchive> = loadDependencies(settings)
         ): Extension {
-            val archive: ResolvedArchive = ArchiveUtils.resolve(ref, parent.loader, dependencies + parent.ref)
+            val loader = ArchiveLoader(parent.ref.classloader, dependencies.map(::ArchiveComponent), ref)
+
+            val archive: ResolvedArchive = ArchiveUtils.resolve(ref, loader, dependencies + parent.ref)
 
             val ext: Extension =
                 archive.classloader.loadClass(settings.extensionClass).getConstructor().newInstance() as Extension
@@ -59,15 +50,5 @@ public class ExtensionLoader private constructor() {
             return ext
         }
     }
-
-//    internal interface Finder<out T : ArchiveReference> {
-//        fun find(path: Path): T
-//    }
-//
-//    internal interface Resolver<T : ArchiveReference> {
-//        val accepts: Class<T>
-//
-//        fun resolve(ref: T, parent: Extension, dependencies: List<DependencyReference>): ClassLoader
-//    }
 }
 
