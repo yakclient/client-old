@@ -1,25 +1,21 @@
 package net.yakclient.client.boot.internal.maven
 
-import net.yakclient.client.boot.internal.maven.property.*
-import net.yakclient.client.boot.internal.maven.property.PomPropertyProvider
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.xml.XmlMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
 import net.yakclient.client.boot.dep.Dependency
+import net.yakclient.client.boot.internal.maven.property.PomPropertyProvider
+import net.yakclient.client.boot.internal.maven.property.PomVersionProvider
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.repository.RepositoryType
 import net.yakclient.client.boot.schema.validate
-import net.yakclient.client.util.get
-import net.yakclient.client.util.isReachable
-import net.yakclient.client.util.openStream
-import net.yakclient.client.util.valueOf
-import org.w3c.dom.Element
-import java.net.URI
+import net.yakclient.client.util.resource.SafeResource
 import java.util.logging.Level
 import java.util.logging.Logger
-import javax.xml.XMLConstants
-import javax.xml.parsers.DocumentBuilderFactory
 
-private const val DEFAULT_SCOPE = "runtime"
 
 internal class MavenRepositoryHandler(
     override val settings: RepositorySettings,
@@ -33,18 +29,19 @@ internal class MavenRepositoryHandler(
 //        RepositoryType.MAVEN_CENTRAL -> "https://repo.maven.apache.org/maven2"
 //        else -> throw IllegalArgumentException("Unknown repo type: ${settings.type}")
 //    }
-    private val factory: DocumentBuilderFactory = DocumentBuilderFactory.newInstance().also {
-        it.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
-    }
+//    private val factory: DocumentBuilderFactory = DocumentBuilderFactory.newInstance().also {
+//        it.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+//    }
 
+    private val xml : ObjectMapper = XmlMapper().registerModule(KotlinModule())
 
     private val propertyProviders = listOf(
-        PomPropertyProvider(factory, schema),
-        PomVersionProvider(factory, schema)
+        PomPropertyProvider(xml, schema),
+        PomVersionProvider(xml, schema)
     )
 
-    private fun loadProperty(doc: Element, property: String) =
-        propertyProviders.firstNotNullOfOrNull { it.provide(doc, property) }
+    private fun loadProperty(pom: Pom, property: String) =
+        propertyProviders.firstNotNullOfOrNull { it.provide(pom, property) }
 
     // TODO Make this nicer, For example something you can add to the DependencyGraph$DependencyLoader that allows a backup repository?
     override fun find(desc: MavenDescriptor): Dependency? =
@@ -60,11 +57,15 @@ internal class MavenRepositoryHandler(
 
         return MavenDescriptor(desc.group, desc.artifact, schema.validate(MavenSchemeContext(desc)) {
             val meta = get(schema.meta)
-            val docElem = factory.newDocumentBuilder().parse(meta.openStream()).documentElement
+//            val docElem = factory.newDocumentBuilder().parse(meta.open()).documentElement
 
-            docElem.valueOf("version")
-                ?: docElem["versioning"].first().valueOf("release")
-                ?: return@validate null
+            val tree = xml.readValue<Map<String, Any>>(meta.open())
+
+            (tree["version"] as? String) ?: (tree["versioning"] as Map<String, String>)["release"] ?: return@validate null
+
+//            docElem.valueOf("version")
+//                ?: docElem["versioning"].first().valueOf("release")
+//                ?: return@validate null
         })
     }
 
@@ -73,17 +74,18 @@ internal class MavenRepositoryHandler(
         return schema.validate(MavenSchemeContext(substituteVersion(desc) ?: return null)) {
             logger.log(Level.FINEST, "Loading maven dependency: '$desc'")
 
-            fun loadPomDependencies(pom: URI): List<MavenDependency> {
-                val doc = factory.newDocumentBuilder().parse(pom.openStream()).documentElement
 
-                return doc["dependencies"].firstOrNull()?.get("dependency")?.map {
-                    val depGroup = it.valueOf("groupId")!!
-                    val depArtifact = it.valueOf("artifactId")!!
+            fun loadPomDependencies(pr: SafeResource): List<MavenDependency> {
+                val pom = xml.readValue<Pom>(pr.open())
+////                val doc = factory.newDocumentBuilder().parse(pom.open()).documentElement
 
-                    fun loadProperty(name: String): String? = loadProperty(doc, name)
+                return pom.dependencies?.map { dep ->
+                    val depGroup = dep.groupId
+                    val depArtifact = dep.artifactId
+
+                    fun loadProperty(name: String): String? = loadProperty(pom, name)
 
                     fun loadIfAsProperty(value: String): String =
-//                        if (value == null) null
                         if (value.startsWith("\${") && value.endsWith("}")) {
                             loadIfAsProperty(
                                 loadProperty(value.substring(2, value.length - 1))
@@ -94,14 +96,14 @@ internal class MavenRepositoryHandler(
                     MavenDependency(
                         loadIfAsProperty(depGroup),
                         loadIfAsProperty(depArtifact),
-                        it.valueOf("version")?.let(::loadIfAsProperty),
-                        it.valueOf("scope")?.let(::loadIfAsProperty) ?: DEFAULT_SCOPE
+                        dep.version?.let(::loadIfAsProperty),
+                        dep.scope?.let(::loadIfAsProperty) ?: "runtime"
                     )
                 } ?: ArrayList()
             }
 
             val pom = get(schema.pom) ?: return@validate null
-            if (!pom.toURL().isReachable()) return@validate null
+//            if (!pom.toURL().isReachable()) return@validate null
             val dependencies = loadPomDependencies(pom)
 
             val needed = dependencies.filter {
@@ -110,14 +112,17 @@ internal class MavenRepositoryHandler(
                     else -> false
                 }
             } + dependencies.filter { it.scope == "import" }.map {
-                fun validatePom(ms: MavenSchema): URI? = ms.validate(MavenSchemeContext(it.toDescriptor()))?.get(ms.pom)
+                fun validatePom(ms: MavenSchema): SafeResource? =
+                    ms.validate(MavenSchemeContext(it.toDescriptor()))?.get(ms.pom)
                 // TODO Find a better solution to this
-                validatePom(schema) ?: (if (settings.type != RepositoryType.MAVEN_CENTRAL) validatePom(MavenCentralSchema) else null) ?: throw IllegalStateException("Failed to find imported maven pom dependency type: $it")
+                validatePom(schema)
+                    ?: (if (settings.type != RepositoryType.MAVEN_CENTRAL) validatePom(RemoteMavenSchema) else null)
+                    ?: throw IllegalStateException("Failed to find imported maven pom dependency type: $it")
             }.flatMap(::loadPomDependencies)
 
             Dependency(
-                get(schema.jar) ?: return@validate null,
-                needed.map { MavenDescriptor(it.group, it.artifact, it.version) },
+                get(schema.jar)?.uri ?: return@validate null,
+                needed.map { MavenDescriptor(it.groupId, it.artifactId, it.version) },
                 desc
             )
         }

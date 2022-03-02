@@ -11,7 +11,7 @@ public class MinecraftExtension : Extension() {
         module.addReads(minecraft)
 
         logger.log(Level.INFO, "Starting minecraft")
-        val startClass = minecraft.classLoader.loadClass("net.minecraft.Start")
+        val startClass = minecraft.classLoader.loadClass("net.minecraft.client.main.Main")
         startClass.getMethod("main", Array<String>::class.java).invoke(null, emptyArray<String>())
     }
 }

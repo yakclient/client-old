@@ -1,5 +1,6 @@
 package net.yakclient.client.boot.internal.maven
 
+import net.yakclient.client.util.toResource
 import net.yakclient.client.util.toUrl
 import java.nio.file.Path
 
@@ -7,7 +8,8 @@ private val LOCAL = Path.of(System.getProperty("user.home")).resolve(".m2").reso
 
 internal object MavenLocalSchema : MavenSchema() {
     override val meta by createScheme {
-        it.baseArtifact.resolve("maven-metadata-local.xml").toUri()
+        val b = it.baseArtifact
+        b.resolve("maven-metadata-local.xml").toResource()
     }
     override val versionedArtifact by createScheme {
         it.versionedArtifact?.toUrl()
@@ -16,10 +18,10 @@ internal object MavenLocalSchema : MavenSchema() {
         it.baseArtifact.toUrl()
     }
     override val jar by createScheme {
-        it.versionedArtifact?.resolve("${it.project.artifact}-${it.project.version}.jar")?.toUri()
+        it.versionedArtifact?.resolve("${it.project.artifact}-${it.project.version}.jar")?.toResource()
     }
     override val pom by createScheme {
-        it.versionedArtifact?.resolve("${it.project.artifact}-${it.project.version}.pom")?.toUri()
+        it.versionedArtifact?.resolve("${it.project.artifact}-${it.project.version}.pom")?.toResource()
     }
 }
 

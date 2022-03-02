@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "net.yakclient"
- version = "1.0-SNAPSHOT"
+version = "1.0-SNAPSHOT"
 
 
 dependencies {
@@ -16,9 +16,11 @@ dependencies {
     implementation(kotlin("reflect"))
 
     implementation("io.github.config4k:config4k:0.4.2")
-    implementation("com.typesafe:config:1.4.1")
+//    implementation("com.typesafe:config:1.4.1")
     implementation(project(":util"))
 
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.3")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.3")
 }
 
 application {
@@ -27,7 +29,7 @@ application {
 
     applicationDefaultJvmArgs = listOf(
         "--add-reads", "kotlin.stdlib=kotlinx.coroutines.core.jvm",
-        "-Djava.library.path=/Users/durgan/IdeaProjects/yakclient/yak-minecraft/lib/natives/osx",
+        "-Djava.library.path=${property("native.path")}",
         "--add-opens", "java.base/java.lang=yak.minecraft"
     )
 }

@@ -15,6 +15,9 @@ module yakclient.client.boot {
     requires kotlin.reflect;
     requires java.xml;
     requires kotlinx.coroutines.core.jvm;
+    requires com.fasterxml.jackson.kotlin;
+    requires com.fasterxml.jackson.dataformat.xml;
+    requires com.fasterxml.jackson.databind;
 
     // TODO remove, just for insuring that the modules are in the module graph
     requires jdk.unsupported;
@@ -34,8 +37,11 @@ module yakclient.client.boot {
 
     opens net.yakclient.client.boot.repository to kotlin.reflect; // For kotlin CLI
     opens net.yakclient.client.boot.internal to java.base; // For service instantiation
+    opens net.yakclient.client.boot.internal.maven to com.fasterxml.jackson.databind; // For xml and Json parsing
     exports net.yakclient.client.boot.internal to java.base; // ^
-    exports net.yakclient.client.boot.internal.maven to kotlin.reflect; // For config parsing
+    exports net.yakclient.client.boot.internal.maven to
+            kotlin.reflect, // For config parsing
+            com.fasterxml.jackson.databind; // For xml and Json parsing
 
     uses ArchiveResolver;
     uses ArchiveFinder;

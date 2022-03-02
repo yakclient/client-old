@@ -6,7 +6,7 @@ import java.net.URL
 class TestIOUtils {
     @Test
     fun `URL to resources URI`() {
-        println(URL("https://docs.oracle.com/javase/7/docs/api/javax/xml/validation").resourceAt("Schema.html"))
+        println(URL("https://docs.oracle.com/javase/7/docs/api/javax/xml/validation").uriAt("Schema.html"))
     }
 
     @Test

@@ -4,7 +4,6 @@ import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ArchiveUtils.resolve
 import net.yakclient.client.boot.archive.patch
-import net.yakclient.client.boot.archive.removeModules
 import net.yakclient.client.boot.ext.Extension
 import net.yakclient.client.boot.ext.ExtensionLoader
 import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
@@ -26,6 +25,7 @@ public class ApiInternalExt : Extension() {
         val minecraft = resolve(
              mcDeps + reference,
         ) { loader }
+
         val settings = ExtensionLoader.loadSettings(ext)
 
         ExtensionLoader.load(

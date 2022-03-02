@@ -1,7 +1,7 @@
 package net.yakclient.client.boot.internal.maven.property
 
-import org.w3c.dom.Element
+import net.yakclient.client.boot.internal.maven.Pom
 
 internal interface MavenPropertyProvider {
-    fun provide(document: Element, property:String) : String?
+    fun provide(pom: Pom, property:String) : String?
 }

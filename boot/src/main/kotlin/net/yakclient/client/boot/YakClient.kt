@@ -4,7 +4,6 @@ import com.typesafe.config.ConfigFactory
 import io.github.config4k.extract
 import io.github.config4k.registerCustomType
 import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
 import kotlinx.cli.required
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
@@ -24,7 +23,6 @@ import java.nio.file.Path
 import java.util.logging.Level
 import kotlin.system.exitProcess
 
-private const val DEFAULT_THREAD_POOL_SIZE = 10
 
 public object YakClient : Extension() {
     internal var innited: Boolean = false
@@ -45,11 +43,11 @@ public fun main(args: Array<String>) {
     val parser = ArgParser("yakclient")
 
     val yakDirectory by parser.option(PathArgument, "yakdirectory", "d").required()
-    val threadPoolSize by parser.option(ArgType.Int, "poolsize")
+//    val threadPoolSize by parser.option(ArgType.Int, "poolsize")
 
-    parser.parse(args).run {
-        init(yakDirectory, threadPoolSize ?: DEFAULT_THREAD_POOL_SIZE)
-    }
+    parser.parse(args)
+
+    init(yakDirectory)
 
     val run = runCatching {
         ExtensionLoader.load(ArchiveUtils.find(YakClient.settings.apiLocation), YakClient).onLoad()
@@ -61,11 +59,9 @@ public fun main(args: Array<String>) {
     } else YakClient.logger.log(Level.INFO, "Successfully Quit")
 }
 
-public fun init(yakDir: Path, poolSize: Int) {
+public fun init(yakDir: Path) {
     if (YakClient.innited) return
     YakClient.innited = true
-
-//    System.setSecurityManager(SecurityManager())
 
     registerCustomType(UriCustomType())
 
@@ -97,7 +93,7 @@ public fun init(yakDir: Path, poolSize: Int) {
 //
 //    mvn.find(mvn.loadDescription("")!!)
 
-    val dependencyPopulator = object : DependencyGraph.DependencyLoader<MavenDescriptor>(
+    val populator = object : DependencyGraph.DependencyLoader<MavenDescriptor>(
         RepositoryFactory.create(
             RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)
         ) as RepositoryHandler<MavenDescriptor>
@@ -114,11 +110,13 @@ public fun init(yakDir: Path, poolSize: Int) {
         }
     }
 
-    dependencyPopulator.load("org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4")
-    dependencyPopulator.load("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.0")
-    dependencyPopulator.load("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
-    dependencyPopulator.load("io.github.config4k:config4k:0.4.2")
-    dependencyPopulator.load("com.typesafe:config:1.4.1")
+    populator.load("org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4")
+    populator.load("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.0")
+    populator.load("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
+    populator.load("io.github.config4k:config4k:0.4.2")
+    populator.load("com.typesafe:config:1.4.1")
+    populator.load("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.3")
+    populator.load("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.3")
 
 //    val loaded = HashMap<String, DependencyNode>()
 

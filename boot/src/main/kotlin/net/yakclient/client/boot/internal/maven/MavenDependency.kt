@@ -29,14 +29,15 @@ import net.yakclient.client.boot.dep.Dependency
 //
 //    override fun toString(): String = "MavenProject(group='$group', artifact='$artifact', version='$version')"
 //}
-
-internal data class MavenDependency(
-    val group: String,
-    override val artifact: String,
-    override val version: String?,
-    val scope: String,
-) : Dependency.Descriptor {
-    fun toDescriptor() : MavenDescriptor = MavenDescriptor(group, artifact, version)
-}
+//private const val DEFAULT_SCOPE = "runtime"
+//
+//internal data class MavenDependency(
+//    val group: String,
+//    override val artifact: String,
+//    override val version: String?,
+//    val scope: String? = DEFAULT_SCOPE,
+//) : Dependency.Descriptor {
+//    fun toDescriptor() : MavenDescriptor = MavenDescriptor(group, artifact, version)
+//}
 
 

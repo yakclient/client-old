@@ -5,7 +5,8 @@ module yakclient.client.util {
     requires config4k;
     requires typesafe.config;
     requires kotlinx.coroutines.core.jvm;
+    requires java.logging;
 
     exports net.yakclient.client.util;
-
+    exports net.yakclient.client.util.resource;
 }

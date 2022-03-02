@@ -27,6 +27,8 @@ public class ClConglomerate(
         return defineClass(name, bb, domain).also { if (resolve) resolveClass(it) }
     }
 
+//    override fun findResource(name: String): URL? = resourceMap[name]?.provideResource(name)?.toURL() ?: super.getResource(name)
+
     override fun findResource(mn: String, name: String): URL? = resourceMap[name]?.provideResource(name)?.toURL() ?: super.getResource(name)
 }
 

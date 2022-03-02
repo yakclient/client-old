@@ -2,11 +2,21 @@ package net.yakclient.client.util
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.*
-import java.net.*
+import net.yakclient.client.util.resource.ExternalResource
+import net.yakclient.client.util.resource.LocalResource
+import net.yakclient.client.util.resource.SafeResource
+import java.io.ByteArrayOutputStream
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URI
+import java.net.URL
 import java.nio.channels.Channels
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.*
+import kotlin.collections.ArrayList
 
 public fun InputStream.readInputStream(): ByteArray = ByteArrayOutputStream().use { outputStream ->
     val size = available()
@@ -64,7 +74,7 @@ public val URL.baseURL: String
             (this.authority.takeUnless { it == null || it.isEmpty() }?.let { "//$it" } ?: "") +
             (this.path ?: "").removeSuffix("/")
 
-public fun URL.resourceAt(path: String): URI = URI(("$baseURL/$path"))
+public fun URL.uriAt(path: String): URI = URI(("$baseURL/$path"))
 
 public fun URL.urlAt(vararg paths: String): URL = URL(paths.fold(baseURL) { acc, it -> "$acc/$it" })
 
@@ -76,10 +86,18 @@ public infix fun Path.resolve(name: String): Path = resolve(name)
 
 public infix fun Path.resolve(path: Path): Path = resolve(path)
 
-private fun deleteAllInternal(path: Path) : Boolean {
+private fun deleteAllInternal(path: Path): Boolean {
     path.children().forEach(::deleteAllInternal)
 
     return Files.deleteIfExists(path)
 }
 
-public fun Path.deleteAll() : Boolean = deleteAllInternal(this)
+public fun Path.deleteAll(): Boolean = deleteAllInternal(this)
+
+public fun URI.toResource(checkSum: ByteArray): SafeResource = ExternalResource(this, checkSum)
+
+public fun URI.readBytes() : ByteArray = toURL().readBytes()
+
+public fun URI.readHexToBytes() : ByteArray = HexFormat.of().parseHex(String(readBytes()))
+
+public fun Path.toResource() : SafeResource = LocalResource(this)
