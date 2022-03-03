@@ -1,4 +1,4 @@
-package net.yakclient.client.boot.dep
+package net.yakclient.client.boot.dependency
 
 import java.net.URI
 

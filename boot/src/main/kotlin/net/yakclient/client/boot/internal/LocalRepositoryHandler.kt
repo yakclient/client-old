@@ -3,12 +3,10 @@ package net.yakclient.client.boot.internal
 import com.typesafe.config.ConfigFactory
 import io.github.config4k.extract
 import net.yakclient.client.boot.YakClient
-import net.yakclient.client.boot.dep.CachedDependency
-import net.yakclient.client.boot.dep.Dependency
-import net.yakclient.client.boot.dep.DependencyGraph
+import net.yakclient.client.boot.dependency.CachedDependency
+import net.yakclient.client.boot.dependency.Dependency
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.boot.repository.RepositoryType
 import java.nio.file.Files
 import java.nio.file.Path
 

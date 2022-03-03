@@ -1,8 +1,10 @@
-package net.yakclient.client.boot.dep
+package net.yakclient.client.boot.dependency
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.xml.XmlMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.typesafe.config.ConfigFactory
-import io.github.config4k.extract
-import io.github.config4k.toConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -24,13 +26,17 @@ internal object DependencyCache {
     private val logger: Logger = Logger.getLogger(DependencyCache::class.simpleName)
     private val all: MutableMap<CachedDependency.Descriptor, CachedDependency>
 
+    private val mapper: ObjectMapper = XmlMapper().registerModule(KotlinModule())
+
     init {
         val metaFile = cacheMeta.toFile()
 
-        if (cacheMeta.make()) setOf<CachedDependency>().toConfig(META_ROOT_NAME).writeTo(metaFile)
+        if (cacheMeta.make()) metaFile.writeText( mapper.writeValueAsString(setOf<CachedDependency>()))
+//        if (cacheMeta.make()) setOf<CachedDependency>().toConfig(META_ROOT_NAME).writeTo(metaFile)
 
-        all = ConfigFactory.parseFile(metaFile).extract<Set<CachedDependency>>(META_ROOT_NAME)
-            .associateByTo(ConcurrentHashMap()) { it.desc }
+        all = mapper.readValue<Set<CachedDependency>>(metaFile).associateByTo(ConcurrentHashMap()) { it.desc }
+//        all = ConfigFactory.parseFile(metaFile).extract<Set<CachedDependency>>(META_ROOT_NAME)
+//            .associateByTo(ConcurrentHashMap()) { it.desc }
     }
 
     fun cache(dependency: CachedDependency) {
@@ -66,7 +72,7 @@ internal object DependencyCache {
             if (!isCached(desc)) {
                 meta.add(cachedDependency)
 
-                meta.toConfig(META_ROOT_NAME).writeTo(cacheMeta.toFile())
+                cacheMeta.toFile().writeText(mapper.writeValueAsString(meta))
             }
 //            "\"${desc.artifact}:${desc.version}\"".takeUnless { meta.contains(it) }?.also { a ->
 //

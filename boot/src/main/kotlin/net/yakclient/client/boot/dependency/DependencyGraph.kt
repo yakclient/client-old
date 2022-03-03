@@ -1,4 +1,4 @@
-package net.yakclient.client.boot.dep
+package net.yakclient.client.boot.dependency
 
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveReference
@@ -15,43 +15,10 @@ import java.util.logging.Logger
 
 
 public object DependencyGraph {
-    //    private val nameTo: MutableMap<CachedDependency.Descriptor, DependencyNode> = HashMap()
-//    private val _all: MutableSet<CachedDependency.Descriptor> = HashSet()
     private val logger: Logger = Logger.getLogger(DependencyGraph::class.simpleName)
 
-    //    internal val all: Set<Dependency.Descriptor> by
     private val graph: MutableMap<Dependency.Descriptor, DependencyNode> = HashMap()
     private val cache: DependencyCache = DependencyCache
-
-//    public companion object {
-//        public val theGraph: DependencyGraph =
-//            ServiceLoader.load(DependencyGraph::class.java).firstOrNull()?.also { dg ->
-//                val repo = dg.ofRepository(CachedRepositoryHandler(dg.cache))
-//
-////                loadMeta().forEach {
-////                    repo.loadInternal(it.value.desc as CachedDependency.Descriptor, null)
-////                        ?: dg.logger.log(
-////                            Level.WARNING,
-////                            "Broken dependency scheme in cache detected. Please wipe directory: $cachePath when possible"
-////                        )
-////                }
-//            } ?: throw IllegalStateException("Failed to find service provider for ${this::class.simpleName}")
-//    }
-
-//    internal fun forceAdd(node: DependencyNode) {
-//        cache.cache(CachedDependency(Path.of(""), node.children.map { c -> CachedDependency.Descriptor(c.desc.artifact, c.desc.version) }, CachedDependency.Descriptor(node.desc.artifact, node.desc.version)))
-//        graph[node.desc] = node
-//    }
-//    internal fun add(node: DependencyNode) {
-//        val desc = node.toResolveDesc()
-//        if (nameTo.contains(desc)) return
-//        nameTo[desc] = node
-//        _all.add(desc)
-//    }
-
-    internal fun force(node: Dependency) : Unit {
-
-    }
 
     public fun ofRepository(settings: RepositorySettings): DependencyLoader<*> =
         ofRepository(RepositoryFactory.create(settings))

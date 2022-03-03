@@ -1,10 +1,6 @@
 package net.yakclient.client.boot.test.ext
 
 import io.github.config4k.registerCustomType
-import net.yakclient.client.boot.ext.Extension
-import net.yakclient.client.boot.ext.ExtensionLoader
-import net.yakclient.client.boot.ext.entryOfClass
-import net.yakclient.client.boot.setting.BasicExtensionSettings
 import net.yakclient.client.util.UriCustomType
 import net.yakclient.client.util.child
 import net.yakclient.client.util.parent

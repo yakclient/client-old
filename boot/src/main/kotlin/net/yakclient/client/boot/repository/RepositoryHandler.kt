@@ -1,6 +1,6 @@
 package net.yakclient.client.boot.repository
 
-import net.yakclient.client.boot.dep.Dependency
+import net.yakclient.client.boot.dependency.Dependency
 
 public interface RepositoryHandler<D: Dependency.Descriptor> {
     public val settings: RepositorySettings

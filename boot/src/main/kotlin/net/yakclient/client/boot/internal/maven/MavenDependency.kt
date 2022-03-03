@@ -1,7 +1,5 @@
 package net.yakclient.client.boot.internal.maven
 
-import net.yakclient.client.boot.dep.Dependency
-
 //internal open class MavenProject(
 //    val group: String,
 //    val artifact: String,

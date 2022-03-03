@@ -13,7 +13,7 @@ private const val NUM_ATTEMPTS = 3
 public class ExternalResource(
     override val uri: URI,
     private val check: ByteArray,
-    checkType: String = "MD5"
+    checkType: String = "SHA1"
 ) : SafeResource {
     private val resource: ByteArray
 
@@ -39,12 +39,12 @@ public class ExternalResource(
 
                 digest.update(b)
 
-//                if (digest.digest().contentEquals(check)) {
+                if (digest.digest().contentEquals(check)) {
                     b
-//                } else {
-//                    logger.log(Level.WARNING, "Checksums failed for resource: $uri")
-//                    null
-//                }
+                } else {
+                    logger.log(Level.WARNING, "Checksums failed for resource: $uri")
+                    null
+                }
             }
         } ?: throw DownloadFailedException(uri)
     }

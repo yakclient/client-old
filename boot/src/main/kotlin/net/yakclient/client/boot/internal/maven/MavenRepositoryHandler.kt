@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
-import net.yakclient.client.boot.dep.Dependency
+import net.yakclient.client.boot.dependency.Dependency
 import net.yakclient.client.boot.internal.maven.property.PomPropertyProvider
 import net.yakclient.client.boot.internal.maven.property.PomVersionProvider
 import net.yakclient.client.boot.repository.RepositoryFactory
@@ -77,7 +77,6 @@ internal class MavenRepositoryHandler(
 
             fun loadPomDependencies(pr: SafeResource): List<MavenDependency> {
                 val pom = xml.readValue<Pom>(pr.open())
-////                val doc = factory.newDocumentBuilder().parse(pom.open()).documentElement
 
                 return pom.dependencies?.map { dep ->
                     val depGroup = dep.groupId
@@ -96,7 +95,7 @@ internal class MavenRepositoryHandler(
                     MavenDependency(
                         loadIfAsProperty(depGroup),
                         loadIfAsProperty(depArtifact),
-                        dep.version?.let(::loadIfAsProperty),
+                        dep.version?.let(::loadIfAsProperty) ?: substituteVersion(dep.toDescriptor())?.version,
                         dep.scope?.let(::loadIfAsProperty) ?: "runtime"
                     )
                 } ?: ArrayList()

@@ -1,6 +1,6 @@
 package net.yakclient.client.minecraft
 
-import net.yakclient.client.boot.ext.Extension
+import net.yakclient.client.boot.extension.Extension
 import java.util.logging.Level
 
 public class MinecraftExtension : Extension() {

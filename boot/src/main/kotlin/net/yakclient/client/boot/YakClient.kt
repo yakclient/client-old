@@ -8,9 +8,9 @@ import kotlinx.cli.required
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
-import net.yakclient.client.boot.dep.DependencyGraph
-import net.yakclient.client.boot.ext.Extension
-import net.yakclient.client.boot.ext.ExtensionLoader
+import net.yakclient.client.boot.dependency.DependencyGraph
+import net.yakclient.client.boot.extension.Extension
+import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.internal.jpm.ResolvedJpmArchive
 import net.yakclient.client.boot.internal.maven.MavenDescriptor
 import net.yakclient.client.boot.repository.RepositoryFactory

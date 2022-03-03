@@ -1,7 +1,6 @@
 package net.yakclient.client.boot.test.dep
 
-import net.yakclient.client.boot.YakClient
-import net.yakclient.client.boot.dep.DependencyGraph
+import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.init
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.repository.RepositoryType

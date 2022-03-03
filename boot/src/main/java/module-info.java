@@ -26,11 +26,11 @@ module yakclient.client.boot {
     requires java.sql;
 
     exports net.yakclient.client.boot;
-    exports net.yakclient.client.boot.ext;
+    exports net.yakclient.client.boot.extension;
     exports net.yakclient.client.boot.setting;
     exports net.yakclient.client.boot.lifecycle;
     exports net.yakclient.client.boot.exception;
-    exports net.yakclient.client.boot.dep;
+    exports net.yakclient.client.boot.dependency;
     exports net.yakclient.client.boot.repository;
     exports net.yakclient.client.boot.archive;
     exports net.yakclient.client.boot.loader;
@@ -38,6 +38,7 @@ module yakclient.client.boot {
     opens net.yakclient.client.boot.repository to kotlin.reflect; // For kotlin CLI
     opens net.yakclient.client.boot.internal to java.base; // For service instantiation
     opens net.yakclient.client.boot.internal.maven to com.fasterxml.jackson.databind; // For xml and Json parsing
+    opens net.yakclient.client.boot.dependency to com.fasterxml.jackson.databind;
     exports net.yakclient.client.boot.internal to java.base; // ^
     exports net.yakclient.client.boot.internal.maven to
             kotlin.reflect, // For config parsing

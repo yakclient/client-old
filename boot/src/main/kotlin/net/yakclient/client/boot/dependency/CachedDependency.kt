@@ -1,4 +1,4 @@
-package net.yakclient.client.boot.dep
+package net.yakclient.client.boot.dependency
 
 import java.nio.file.Path
 import kotlin.reflect.full.isSuperclassOf

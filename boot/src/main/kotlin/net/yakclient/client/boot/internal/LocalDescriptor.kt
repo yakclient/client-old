@@ -1,6 +1,6 @@
 package net.yakclient.client.boot.internal
 
-import net.yakclient.client.boot.dep.Dependency
+import net.yakclient.client.boot.dependency.Dependency
 
 public data class LocalDescriptor(
     override val artifact: String,

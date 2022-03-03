@@ -1,12 +1,11 @@
 package net.yakclient.client.boot.test.repository
 
-import net.yakclient.client.boot.dep.Dependency
+import net.yakclient.client.boot.dependency.Dependency
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.repository.RepositoryType
 import kotlin.test.Test
-import kotlin.test.assertNotNull
 
 class MavenRepoTests {
     @Test

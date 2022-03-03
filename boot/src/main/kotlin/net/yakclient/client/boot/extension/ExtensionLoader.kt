@@ -1,13 +1,12 @@
-package net.yakclient.client.boot.ext
+package net.yakclient.client.boot.extension
 
 import io.github.config4k.extract
-import net.yakclient.client.boot.dep.DependencyGraph
+import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveLoader
-import net.yakclient.client.boot.loader.IntegratedLoader
 import net.yakclient.client.boot.setting.BasicExtensionSettings
 import net.yakclient.client.boot.setting.ExtensionSettings
 import net.yakclient.client.util.toConfig

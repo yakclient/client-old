@@ -19,8 +19,8 @@ dependencies {
 //    implementation("com.typesafe:config:1.4.1")
     implementation(project(":util"))
 
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.3")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.3")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.6")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6")
 }
 
 application {

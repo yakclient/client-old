@@ -3,4 +3,5 @@ module yakclient.client.api.internal {
     requires yakclient.client.api;
     requires yakclient.client.boot;
     requires yakclient.client.util;
+    requires com.fasterxml.jackson.annotation;
 }

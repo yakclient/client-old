@@ -1,4 +1,4 @@
-package net.yakclient.client.boot.ext
+package net.yakclient.client.boot.extension
 
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.util.openStream

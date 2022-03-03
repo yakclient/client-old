@@ -4,8 +4,8 @@ import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ArchiveUtils.resolve
 import net.yakclient.client.boot.archive.patch
-import net.yakclient.client.boot.ext.Extension
-import net.yakclient.client.boot.ext.ExtensionLoader
+import net.yakclient.client.boot.extension.Extension
+import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
 import net.yakclient.client.boot.loader.ClConglomerate
 
