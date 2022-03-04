@@ -7,6 +7,7 @@ import net.yakclient.client.boot.dependency.CachedDependency
 import net.yakclient.client.boot.dependency.Dependency
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
+import net.yakclient.client.util.toResource
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -23,7 +24,7 @@ internal open class LocalRepositoryHandler(
     private val dependencies: Map<Dependency.Descriptor, Dependency> =  object : HashMap<Dependency.Descriptor, Dependency>() {
         override fun get(key: Dependency.Descriptor): Dependency? {
             if (!containsKey(key)) {
-                meta["${key.artifact}:${key.version}"]?.also {  put(key, Dependency(it.path.toUri(), it.dependants, it.desc)) }
+                meta["${key.artifact}:${key.version}"]?.also {  put(key, Dependency(it.path.toResource(), it.dependants, it.desc)) }
             }
             return super.get(key)
         }

@@ -29,8 +29,8 @@ application {
 
     applicationDefaultJvmArgs = listOf(
         "--add-reads", "kotlin.stdlib=kotlinx.coroutines.core.jvm",
-        "-Djava.library.path=${property("native.path")}",
-        "--add-opens", "java.base/java.lang=yak.minecraft"
+//        "-Djava.library.path=${property("native.path")}",
+//        "--add-opens", "java.base/java.lang=yak.minecraft"
     )
 }
 

@@ -4,14 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.typesafe.config.ConfigFactory
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import net.yakclient.client.boot.YakClient
+import net.yakclient.client.util.copyTo
 import net.yakclient.client.util.make
 import net.yakclient.client.util.downloadTo
-import net.yakclient.client.util.writeTo
 import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -21,7 +17,7 @@ internal object DependencyCache {
     private const val META_ROOT_NAME = "dependency-meta"
 
     private val cachePath = YakClient.settings.dependencyCacheLocation.toPath()
-    private val cacheMeta = cachePath.resolve("dependencies-meta.conf")
+    private val cacheMeta = cachePath.resolve("dependencies-meta.json")
 
     private val logger: Logger = Logger.getLogger(DependencyCache::class.simpleName)
     private val all: MutableMap<CachedDependency.Descriptor, CachedDependency>
@@ -46,27 +42,28 @@ internal object DependencyCache {
     fun resolveAll(dependencies: Set<Dependency.Descriptor>): Pair<Set<CachedDependency>, Set<Dependency.Descriptor>> =
         all.keys.let { dependencies.intersect(it).mapNotNullTo(HashSet(), all::get) to dependencies.subtract(it) }
 
-    fun isCached(descriptor: Dependency.Descriptor) = all.contains(descriptor)
+    fun isCached(descriptor: Dependency.Descriptor) = all.contains(descriptor.let { CachedDependency.Descriptor(it.artifact, it.version) })
 
     // TODO add checksum support
-    fun cache(dependency: Dependency): CachedDependency = runBlocking {
-        if (all.contains(dependency.desc)) return@runBlocking all[dependency.desc]!!
+    fun cache(dependency: Dependency): CachedDependency {// runBlocking {
+        val key = dependency.desc.let { CachedDependency.Descriptor(it.artifact, it.version) }
+        if (all.contains(key)) return all[key]!!
 
         val desc = dependency.desc
         val jarPath = cachePath.resolve("${desc.artifact}${desc.version?.let { "-$it" } ?: ""}.jar")
         val cachedDependency = CachedDependency(
             jarPath,
             dependency.dependants.map { CachedDependency.Descriptor(it.artifact, it.version) },
-            CachedDependency.Descriptor(desc.artifact, desc.version)
+            key
         )
 
-        if (!Files.exists(jarPath)) launch(Dispatchers.IO) {
+        if (!Files.exists(jarPath)) /*launch(Dispatchers.IO)*/ {
             logger.log(Level.INFO, "Downloading dependency: ${desc.artifact}-${desc.version}")
 
-            dependency.uri downloadTo jarPath
+            dependency.jar copyTo jarPath
         }
 
-        launch(Dispatchers.IO) {
+//        launch(Dispatchers.IO) {
             val meta = all.values.toMutableSet() //all.mapKeysTo(HashMap()) { (key, _) -> "\"${key.artifact}:${key.version}\"" }
 
             if (!isCached(desc)) {
@@ -82,10 +79,10 @@ internal object DependencyCache {
 //            }
 
             all[cachedDependency.desc] = cachedDependency
-        }
+//        }
 
 
-        cachedDependency
+        return cachedDependency
     }
 }
 

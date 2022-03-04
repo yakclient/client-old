@@ -27,12 +27,18 @@ subprojects {
 
     tasks.compileKotlin {
         destinationDirectory.set(tasks.compileJava.get().destinationDirectory.asFile.get())
-        kotlinOptions.jvmTarget = "11"
+        kotlinOptions.jvmTarget = "17"
+    }
+
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(17))
+        }
     }
 
     tasks.compileJava {
-        targetCompatibility = "11"
-        sourceCompatibility = "11"
+        targetCompatibility = "17"
+        sourceCompatibility = "17"
     }
 
     dependencies {

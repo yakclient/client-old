@@ -120,7 +120,7 @@ internal class MavenRepositoryHandler(
             }.flatMap(::loadPomDependencies)
 
             Dependency(
-                get(schema.jar)?.uri ?: return@validate null,
+                get(schema.jar) ?: return@validate null,
                 needed.map { MavenDescriptor(it.groupId, it.artifactId, it.version) },
                 desc
             )
