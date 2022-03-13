@@ -11,33 +11,33 @@ import net.yakclient.client.util.toResource
 import java.nio.file.Files
 import java.nio.file.Path
 
-private const val META_NAME = "dependencies-meta.conf"
-
-internal open class LocalRepositoryHandler(
-    override val settings: RepositorySettings
-) : RepositoryHandler<LocalDescriptor> {
-    private val path: Path = Path.of(run {
-        val it: String = settings.path!!
-        if (it.startsWith("~/")) "${YakClient.yakDir}${it.removePrefix("~")}" else it
-    })
-    private val meta = ConfigFactory.parseFile(path.resolve(META_NAME).toFile()).extract<Map<String, CachedDependency>>()
-    private val dependencies: Map<Dependency.Descriptor, Dependency> =  object : HashMap<Dependency.Descriptor, Dependency>() {
-        override fun get(key: Dependency.Descriptor): Dependency? {
-            if (!containsKey(key)) {
-                meta["${key.artifact}:${key.version}"]?.also {  put(key, Dependency(it.path.toResource(), it.dependants, it.desc)) }
-            }
-            return super.get(key)
-        }
-    }
-
-    override fun find(desc: LocalDescriptor): Dependency?  = dependencies[desc]
-
-    override fun loadDescription(dep: String): LocalDescriptor? {
-        if (!Files.exists(path.resolve(dep))) return null
-
-        val name = dep.removeSuffix(".jar")
-        val start = Regex("-(\\d+(\\.|\$))").find(name)?.range?.first ?: return null
-
-        return LocalDescriptor(name.substring(0, start), name.substring(start + 1))
-    }
-}
+//private const val META_NAME = "dependencies-meta.conf"
+//
+//internal open class LocalRepositoryHandler(
+//    override val settings: RepositorySettings
+//) : RepositoryHandler<LocalDescriptor> {
+//    private val path: Path = Path.of(run {
+//        val it: String = settings.url!!
+//        if (it.startsWith("~/")) "${YakClient.yakDir}${it.removePrefix("~")}" else it
+//    })
+//    private val meta = ConfigFactory.parseFile(path.resolve(META_NAME).toFile()).extract<Map<String, CachedDependency>>()
+//    private val dependencies: Map<Dependency.Descriptor, Dependency> =  object : HashMap<Dependency.Descriptor, Dependency>() {
+//        override fun get(key: Dependency.Descriptor): Dependency? {
+//            if (!containsKey(key)) {
+//                meta["${key.artifact}:${key.version}"]?.also {  put(key, Dependency(it.path.toResource(), it.dependants, it.desc)) }
+//            }
+//            return super.get(key)
+//        }
+//    }
+//
+//    override fun find(desc: LocalDescriptor): Dependency?  = dependencies[desc]
+//
+//    override fun loadDescription(dep: String): LocalDescriptor? {
+//        if (!Files.exists(path.resolve(dep))) return null
+//
+//        val name = dep.removeSuffix(".jar")
+//        val start = Regex("-(\\d+(\\.|\$))").find(name)?.range?.first ?: return null
+//
+//        return LocalDescriptor(name.substring(0, start), name.substring(start + 1))
+//    }
+//}

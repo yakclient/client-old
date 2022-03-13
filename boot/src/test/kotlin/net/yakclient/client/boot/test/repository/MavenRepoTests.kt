@@ -14,7 +14,7 @@ class MavenRepoTests {
 
         val dep = handler.find(checkNotNull(handler.loadDescription("net.bytebuddy:byte-buddy:1.12.4")) { "Failed to find dependency" })
 
-        println(dep?.jar?.path)
+        println(dep?.jar)
         println(dep?.dependants)
     }
 
@@ -24,7 +24,7 @@ class MavenRepoTests {
 
         val dep = handler.find(checkNotNull(handler.loadDescription("net.yakclient:bmu-api:1.0-SNAPSHOT")) { "Failed to find dependency" })
 
-        println(dep?.jar?.path)
+        println(dep?.jar)
         println(dep?.dependants)
     }
 }

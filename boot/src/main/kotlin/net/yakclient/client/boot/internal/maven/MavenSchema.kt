@@ -1,28 +1,34 @@
 package net.yakclient.client.boot.internal.maven
 
 import net.yakclient.client.boot.schema.*
-import net.yakclient.client.util.isReachable
 import net.yakclient.client.util.resource.SafeResource
-import java.net.URI
-import java.net.URL
 
-private typealias C = MavenSchemeContext
+//internal typealias MvnC = MavenArtifactContext
 
-internal abstract class MavenSchema : Schema<C> {
-    override val handler: SchemeHandler<C> = SchemeHandler()
+internal interface MavenSchema : Schema<MavenArtifactContext> {
 
-    open val meta by abstractScheme<C, SafeResource>()
-    open val versionedArtifact by abstractScheme<C, URL?>()
-    open val artifact by abstractScheme<C, URL>()
-    open val pom by abstractScheme<C, SafeResource?>()
-    open val jar by abstractScheme<C, SafeResource?>()
+    val meta : SchemaMeta<MavenArtifactContext, SafeResource>// by abstractScheme<C, SafeResource>()
+//    open val versionedArtifact by abstractScheme<C, URL?>()
+//    open val artifact by abstractScheme<C, URL>()
+    val pom : SchemaMeta<MavenVersionContext, SafeResource>
+    val jar : SchemaMeta<MavenVersionContext, SafeResource>
 
-    override fun validate(c: C): ContextHandler<C>? = ContextHandler(c).run {
-        if (!get(artifact).isReachable()) null else this//throw InvalidSchemaException("Artifact: '${c.project.group}:${c.project.artifact}:${c.project.version}' not found")
-    }
+//    override fun validate(c: C): ContextHandler<C>? = ContextHandler(c).run {
+//        if (!get<Any, Schema.Context>(jar).isReachable()) null else this//throw InvalidSchemaException("Artifact: '${c.project.group}:${c.project.artifact}:${c.project.version}' not found")
+//    }
 }
 
-internal data class MavenSchemeContext(
-    val project: MavenDescriptor
+internal open class MavenArtifactContext(
+    val group: String,
+    val artifact: String,
 ) : Schema.Context
+
+internal open class MavenVersionContext(
+//    ac: MavenArtifactContext,
+    group: String,
+    artifact: String,
+    val version: String
+) : MavenArtifactContext(group, artifact) {
+    constructor(ac: MavenArtifactContext, version:String) : this(ac.group,ac.artifact,version)
+}
 

@@ -53,7 +53,7 @@ internal object DependencyCache {
         val jarPath = cachePath.resolve("${desc.artifact}${desc.version?.let { "-$it" } ?: ""}.jar")
         val cachedDependency = CachedDependency(
             jarPath,
-            dependency.dependants.map { CachedDependency.Descriptor(it.artifact, it.version) },
+            dependency.dependants.map { CachedDependency.Descriptor(it.desc.artifact, it.desc.version) },
             key
         )
 

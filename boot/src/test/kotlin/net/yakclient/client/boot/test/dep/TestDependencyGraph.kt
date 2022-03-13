@@ -16,7 +16,7 @@ import kotlin.test.Test
 class TestDependencyGraph {
     @Test
     fun `Test dependency graph`() {
-        init(workingDir().parent("client").child("workingDir").toPath(), 10)
+        init(workingDir().parent("client").child("workingDir").toPath())
 
         val ref = DependencyGraph.ofRepository(RepositorySettings(RepositoryType.MAVEN_CENTRAL, null))
             .load("org.jetbrains:annotations:13.0")
@@ -26,7 +26,7 @@ class TestDependencyGraph {
 
     @Test
     fun `Test local dependency loading`() {
-        init(workingDir().parent("client").child("workingDir").toPath(), 10)
+        init(workingDir().parent("client").child("workingDir").toPath())
 
         val ref = DependencyGraph.ofRepository(RepositorySettings(RepositoryType.MAVEN_CENTRAL, null))
             .load("com.google.guava:guava:31.0.1-jre")

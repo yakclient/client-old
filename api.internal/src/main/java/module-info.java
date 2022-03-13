@@ -4,4 +4,8 @@ module yakclient.client.api.internal {
     requires yakclient.client.boot;
     requires yakclient.client.util;
     requires com.fasterxml.jackson.annotation;
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.kotlin;
+
+    opens net.yakclient.client.api.internal to com.fasterxml.jackson.databind;
 }

@@ -10,17 +10,18 @@ public data class BootSettings(
     val mcVersion: String,
     val apiVersion: String,
     val mcExtLocation: Path,
-    val mcLocation: Path,
+    val clientJsonFile: Path,
     val apiLocation: Path,
     val apiInternalLocation: Path,
     val extensionDir: File,
-    val minecraftDependencies : List<Path>,
+//    val minecraftDependencies : List<Path>,
 
     val cacheDependencies: Boolean,
     val dependencyCacheLocation: File,
 
     val tempDir: Path,
-    val moduleTemp: Path
+    val moduleTemp: Path,
+    val minecraftDir: Path
 ) : ExtensionSettings {
     override val extensionClass: String = YakClient::class.java.name
     override val loader: String? = null
@@ -30,4 +31,5 @@ public data class BootSettings(
 
     public val tempPath: Path = YakClient.yakDir resolve tempDir
     public val moduleTempPath: Path = tempPath resolve moduleTemp
+    public val minecraftPath: Path = YakClient.yakDir resolve minecraftDir
 }

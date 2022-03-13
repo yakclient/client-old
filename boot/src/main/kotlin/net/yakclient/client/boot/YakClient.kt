@@ -8,7 +8,10 @@ import kotlinx.cli.required
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
+import net.yakclient.client.boot.dependency.BasicDepResolver
 import net.yakclient.client.boot.dependency.DependencyGraph
+import net.yakclient.client.boot.dependency.DependencyResolutionFallBack
+import net.yakclient.client.boot.dependency.DependencyResolver
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.internal.jpm.ResolvedJpmArchive
@@ -93,23 +96,62 @@ public fun init(yakDir: Path) {
 //
 //    mvn.find(mvn.loadDescription("")!!)
 
-    val populator = object : DependencyGraph.DependencyLoader<MavenDescriptor>(
+    val populator = DependencyGraph.DependencyLoader(
         RepositoryFactory.create(
             RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)
-        ) as RepositoryHandler<MavenDescriptor>
-    ) {
-        override fun resolve(archive: ArchiveReference, dependants: List<ResolvedArchive>): ResolvedArchive {
-            return ResolvedJpmArchive(
+        ),
+        DependencyResolutionFallBack(BasicDepResolver()) { archive, _ ->
+            ResolvedJpmArchive(
                 ModuleLayer.boot().modules().find {
                     val n = archive.name
                     it.name == n
-//                    it.name == (if (n.startsWith("kotlinx")) "$n.jvm" else n) // Absolutely terrible, but i dont want to find out why kotlinx things randomly have .jvm after them...
-                } ?: return super.resolve(archive, dependants),
+                } ?: return@DependencyResolutionFallBack null,
                 archive
             )
         }
-    }
-
+    )
+//    val populator = object : DependencyGraph.DependencyLoader<MavenDescriptor>(
+//        RepositoryFactory.create(
+//            RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)
+//        ) as RepositoryHandler<MavenDescriptor>,
+//        object : BasicDepResolver() {
+//            override fun invoke(archive: ArchiveReference, dependants: List<ResolvedArchive>): ResolvedArchive {
+//                return ResolvedJpmArchive(
+//                    ModuleLayer.boot().modules().find {
+//                        val n = archive.name
+//                        it.name == n
+//                    } ?: return super.invoke(archive, dependants),
+//                    archive
+//                )
+//            }
+//        }
+//    ) {
+//        override fun resolve(archive: ArchiveReference, dependants: List<ResolvedArchive>): ResolvedArchive {
+//            return ResolvedJpmArchive(
+//                ModuleLayer.boot().modules().find {
+//                    val n = archive.name
+//                    it.name == n
+////                    it.name == (if (n.startsWith("kotlinx")) "$n.jvm" else n) // Absolutely terrible, but i dont want to find out why kotlinx things randomly have .jvm after them...
+//                } ?: return super.resolve(archive, dependants),
+//                archive
+//            )
+//        }
+//    }
+//    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
+//    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+//
+//    implementation(kotlin("reflect"))
+//
+//    implementation("io.github.config4k:config4k:0.4.2")
+////    implementation("com.typesafe:config:1.4.1")
+//    implementation(project(":util"))
+//
+//    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.6")
+//    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6")
+    //implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
+    //    implementation("io.github.config4k:config4k:0.4.2")
+    //    implementation("com.typesafe:config:1.4.1")
+    //    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     populator.load("org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4")
     populator.load("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.0")
     populator.load("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
@@ -117,6 +159,7 @@ public fun init(yakDir: Path) {
     populator.load("com.typesafe:config:1.4.1")
     populator.load("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.3")
     populator.load("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.3")
+    populator.load("org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0")
 
 //    val loaded = HashMap<String, DependencyNode>()
 
@@ -142,10 +185,10 @@ public fun init(yakDir: Path) {
 //        return dep
 //    }
 //
-    val map = ModuleLayer.boot().modules()
-        .filterNot { it.name.startsWith("java") }
-        .filterNot { it.name.startsWith("jdk") }
-        .filterNot { it.name.startsWith("yakclient") }
+//    val map = ModuleLayer.boot().modules()
+//        .filterNot { it.name.startsWith("java") }
+//        .filterNot { it.name.startsWith("jdk") }
+//        .filterNot { it.name.startsWith("yakclient") }
 //        .map(::loadDependencies)
 //    map.forEach(DependencyGraph::forceAdd)
 }

@@ -16,6 +16,7 @@ public open class ArchiveLoader(
     private val domain = ProtectionDomain(CodeSource(null, arrayOf<Certificate>()), null, this, null)
 
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
+        findLoadedClass(name)?.let { return it }
         val entry: ArchiveReference.Entry =
             reference.reader["${name.replace('.', '/')}.class"] ?: return super.loadClass(name, resolve)
 

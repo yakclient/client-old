@@ -15,3 +15,4 @@ public fun Collection<ArchiveReference>.patch(vararg toPatch: Set<String>): List
 
     return ignored + patched
 }
+

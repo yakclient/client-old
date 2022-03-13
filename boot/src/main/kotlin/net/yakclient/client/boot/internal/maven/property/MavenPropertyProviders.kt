@@ -1,13 +1,12 @@
 package net.yakclient.client.boot.internal.maven.property
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import net.yakclient.client.boot.internal.maven.MavenDescriptor
-import net.yakclient.client.boot.internal.maven.MavenSchema
-import net.yakclient.client.boot.internal.maven.MavenSchemeContext
-import net.yakclient.client.boot.internal.maven.Pom
 import org.xml.sax.SAXException
 import java.io.IOException
 import com.fasterxml.jackson.module.kotlin.readValue
+import net.yakclient.client.boot.internal.maven.*
+import net.yakclient.client.boot.internal.maven.MavenSchema
+import net.yakclient.client.boot.internal.maven.Pom
 
 
 private fun Pom.tryLoadParent(mapper: ObjectMapper, schema: MavenSchema): Pom? {
@@ -20,13 +19,23 @@ private fun Pom.tryLoadParent(mapper: ObjectMapper, schema: MavenSchema): Pom? {
     } ?: return null
 
     return try {
-        //schema.validate(MavenSchemeContext(parent))?.get(schema.POM) ?: return null
-//        builder.parse(loadArtifact(repo, parent).pom.openStream()).documentElement
+        val pom = schema.contextHandle
+            .supply(MavenVersionContext(parent.group, parent.artifact, parent.version!! /* We can make this non-null as the parent section of a pom has to be fully qualified, may want to see if property substitutions should be used here. */))
+            .getValue(schema.pom)
 
         mapper.readValue<Pom>(
-            (schema.validate(MavenSchemeContext(parent))?.get(schema.pom) ?: return null).open()
-        ).also {
-            it.groupId = it.groupId ?: it.tryLoadParent(mapper, schema)?.groupId ?: throw IllegalStateException("Failed to load groupId of artifact: ${it.artifactId}")
+            pom.open()
+        ).let {
+            Pom(
+                it.groupId ?: it.tryLoadParent(mapper, schema)?.groupId ?: throw IllegalStateException("Failed to load groupId of artifact: ${it.artifactId}"),
+                it.artifactId,
+                it.version,
+                it.properties,
+                it.parent,
+                it.dependencies,
+                it.repositories
+            )
+//            it.groupId = it.groupId ?: it.tryLoadParent(mapper, schema)?.groupId ?: throw IllegalStateException("Failed to load groupId of artifact: ${it.artifactId}")
         }
     } catch (e: IOException) {
         e.printStackTrace()
@@ -37,8 +46,8 @@ private fun Pom.tryLoadParent(mapper: ObjectMapper, schema: MavenSchema): Pom? {
     }
 }
 
-private fun <T> Pom.travelParents(mapper: ObjectMapper, repo: MavenSchema, call: (Pom) -> T?): T? =
-    call(this) ?: (this.tryLoadParent(mapper, repo))?.travelParents(mapper, repo, call)
+private fun <T> Pom.travelParents(mapper: ObjectMapper, schema: MavenSchema, call: (Pom) -> T?): T? =
+    call(this) ?: (this.tryLoadParent(mapper, schema))?.travelParents(mapper, schema, call)
 
 internal class PomPropertyProvider(
     private val mapper: ObjectMapper,
@@ -69,7 +78,6 @@ internal abstract class ConstantPropertyProvider(
 
     abstract fun provide(document: Pom): String?
 }
-
 
 internal class PomVersionProvider(
     private val mapper: ObjectMapper,

@@ -1,34 +1,48 @@
 package net.yakclient.client.boot.internal.maven
 
+import net.yakclient.client.boot.schema.SchemaHandler
 import net.yakclient.client.util.*
 import java.net.URL
 
-private val CENTRAL: URL = URL("https://repo.maven.apache.org/maven2")
+internal class RemoteMavenSchema(
+    private val repo: URL
+) : MavenSchema {
+    constructor(repo: String) : this(URL(repo))
 
-internal object RemoteMavenSchema : MavenSchema() {
-    override val versionedArtifact by createScheme(MavenSchemeContext::versionedArtifact)
-    override val artifact by createScheme(MavenSchemeContext::baseArtifact)
-    override val jar by createScheme {
-        val s = "${it.project.artifact}-${it.project.version}"
-        val a = it.versionedArtifact
-        a?.uriAt("$s.jar")?.toResource(a.uriAt("$s.jar.sha1").readHexToBytes())
+    override val handler: SchemaHandler<MavenArtifactContext> = SchemaHandler()
+
+    init {
+        handler.registerValidator<MavenArtifactContext> {
+            baseArtifact(it).uriAt("maven-metadata.xml").toURL().isReachable()
+        }
+        handler.registerValidator<MavenVersionContext> {
+            val s = "${it.artifact}-${it.version}"
+            val a = versionedArtifact(it)
+            a.uriAt("$s.pom").toURL().isReachable() && a.uriAt("$s.jar").toURL().isReachable()
+        }
     }
-    override val meta by createScheme {
-        val b = it.baseArtifact
+
+    override val jar = handler.register(MavenVersionContext::class) {
+        val s = "${it.artifact}-${it.version}"
+        val a = versionedArtifact(it)
+        a.uriAt("$s.jar").toResource(a.uriAt("$s.jar.sha1").readHexToBytes())
+    }
+    override val meta = handler.register(MavenArtifactContext::class) {
+        val b = baseArtifact(it)
         b.uriAt("maven-metadata.xml").toResource(b.uriAt("maven-metadata.xml.sha1").readHexToBytes())
     }
-    override val pom by createScheme {
-        val s = "${it.project.artifact}-${it.project.version}"
-        val v = it.versionedArtifact
-        v?.uriAt("$s.pom")?.toResource(v.uriAt("$s.pom.sha1").readHexToBytes())
+    override val pom = handler.register(MavenVersionContext::class) {
+        val s = "${it.artifact}-${it.version}"
+        val v = versionedArtifact(it)
+        v.uriAt("$s.pom").toResource(v.uriAt("$s.pom.sha1").readHexToBytes())
     }
+
+    private fun baseArtifact(c: MavenArtifactContext): URL =
+        repo.urlAt(c.group.replace('.', '/'), c.artifact)
+
+    private fun versionedArtifact(c: MavenVersionContext): URL = c.let { baseArtifact(c).urlAt(it.version) }
 }
 
-private val MavenSchemeContext.baseArtifact: URL
-    get() = CENTRAL.urlAt(project.group.replace('.', '/'), project.artifact)
-
-private val MavenSchemeContext.versionedArtifact: URL?
-    get() = project.version?.let { baseArtifact.urlAt(it) }
 
 //internal class MavenCentralSchemeContext(
 //    repo: URL,

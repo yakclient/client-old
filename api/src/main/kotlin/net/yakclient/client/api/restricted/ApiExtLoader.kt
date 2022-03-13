@@ -1,4 +1,4 @@
-package net.yakclient.client.api.internal
+package net.yakclient.client.api.restricted
 
 import com.typesafe.config.ConfigFactory
 import net.yakclient.client.boot.exception.RestrictedClassException

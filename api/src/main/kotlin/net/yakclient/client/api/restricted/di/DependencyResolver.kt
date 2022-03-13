@@ -1,4 +1,4 @@
-package net.yakclient.client.api.internal.di
+package net.yakclient.client.api.restricted.di
 
 public class DependencyResolver internal constructor(
     private val context: DIContext

@@ -19,7 +19,7 @@ import kotlin.test.Test
 class TestModuleLoading {
     @BeforeTest
     fun setup() {
-        init(workingDir().parent("client").child("workingDir").toPath(), 10)
+        init(workingDir().parent("client").child("workingDir").toPath())
     }
 
     @Test

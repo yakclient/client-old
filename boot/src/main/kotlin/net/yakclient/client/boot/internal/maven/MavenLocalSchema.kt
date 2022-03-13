@@ -1,32 +1,37 @@
 package net.yakclient.client.boot.internal.maven
 
+import net.yakclient.client.boot.schema.SchemaHandler
 import net.yakclient.client.util.toResource
-import net.yakclient.client.util.toUrl
+import java.nio.file.Files
 import java.nio.file.Path
 
 private val LOCAL = Path.of(System.getProperty("user.home")).resolve(".m2").resolve("repository")
 
-internal object MavenLocalSchema : MavenSchema() {
-    override val meta by createScheme {
+internal object MavenLocalSchema : MavenSchema {
+    override val handler: SchemaHandler<MavenArtifactContext> = SchemaHandler()
+    init {
+        handler.registerValidator<MavenArtifactContext> {
+            Files.exists(it.baseArtifact)
+        }
+        handler.registerValidator<MavenVersionContext> {
+            Files.exists(it.versionedArtifact)
+        }
+    }
+
+    override val meta = handler.register(MavenArtifactContext::class) {
         val b = it.baseArtifact
         b.resolve("maven-metadata-local.xml").toResource()
     }
-    override val versionedArtifact by createScheme {
-        it.versionedArtifact?.toUrl()
+    override val jar = handler.register(MavenVersionContext::class) {
+        it.versionedArtifact.resolve("${it.artifact}-${it.version}.jar").toResource()
     }
-    override val artifact by createScheme {
-        it.baseArtifact.toUrl()
-    }
-    override val jar by createScheme {
-        it.versionedArtifact?.resolve("${it.project.artifact}-${it.project.version}.jar")?.toResource()
-    }
-    override val pom by createScheme {
-        it.versionedArtifact?.resolve("${it.project.artifact}-${it.project.version}.pom")?.toResource()
+    override val pom = handler.register(MavenVersionContext::class) {
+        it.versionedArtifact.resolve("${it.artifact}-${it.version}.pom").toResource()
     }
 }
 
-private val MavenSchemeContext.baseArtifact: Path
-    get() = LOCAL.resolve(project.group.replace('.', '/')).resolve(project.artifact)
+private val MavenArtifactContext.baseArtifact: Path
+    get() = LOCAL.resolve(group.replace('.', '/')).resolve(artifact)
 
-private val MavenSchemeContext.versionedArtifact: Path?
-    get() = project.version?.let { baseArtifact.resolve(it) }
+private val MavenVersionContext.versionedArtifact: Path
+    get() = version.let { baseArtifact.resolve(it) }

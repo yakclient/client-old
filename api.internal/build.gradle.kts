@@ -8,4 +8,5 @@ dependencies {
     implementation(project(":boot"))
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6")
+
 }

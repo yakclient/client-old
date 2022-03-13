@@ -29,6 +29,7 @@ application {
 
     applicationDefaultJvmArgs = listOf(
         "--add-reads", "kotlin.stdlib=kotlinx.coroutines.core.jvm",
+        "--add-exports", "kotlin.reflect/kotlin.reflect.jvm.internal=com.fasterxml.jackson.kotlin",
 //        "-Djava.library.path=${property("native.path")}",
 //        "--add-opens", "java.base/java.lang=yak.minecraft"
     )
