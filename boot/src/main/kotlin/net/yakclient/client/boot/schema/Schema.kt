@@ -110,7 +110,7 @@ public class SchemaHandler<C : Schema.Context> {
         validators[type.java.name] = validator
     }
 
-    public inline fun <reified NC: C> registerValidator(
+    public inline fun <reified NC : C> registerValidator(
         validator: ContextValidator<NC>
     ): Unit = registerValidator(NC::class, validator)
 
@@ -143,8 +143,6 @@ public class ContextHandler<C : Schema.Context>(
     private var _context: C? = null
         set(value) {
             checkNotNull(value)
-            assert((handler.validators[value::class.java.name]
-                    as? ContextValidator<Schema.Context>)?.invoke(value) ?: true) {"Invalid context: '$value'! Failed to pass validation checks!"}
 
             field = value
             context = value
@@ -176,10 +174,14 @@ public class ContextHandler<C : Schema.Context>(
 //        public
 
 
-    public fun supply(c: C) : ContextHandler<C> {
-        _context = c
-        return this
-    }
+    public fun supply(c: C): Boolean =
+        // Check if there is a validator and if there is then validate. If not then no checks are required.
+        if ((handler.validators[c::class.java.name] as? ContextValidator<Schema.Context>)?.invoke(c) == false) {
+            false
+        } else {
+            _context = c
+            true
+        }
 //    public fun <T> KProperty1<out Schema, *>.get() : T = get(this@ContextHandler)
 }
 

@@ -19,15 +19,24 @@ private fun Pom.tryLoadParent(mapper: ObjectMapper, schema: MavenSchema): Pom? {
     } ?: return null
 
     return try {
-        val pom = schema.contextHandle
-            .supply(MavenVersionContext(parent.group, parent.artifact, parent.version!! /* We can make this non-null as the parent section of a pom has to be fully qualified, may want to see if property substitutions should be used here. */))
-            .getValue(schema.pom)
+        val c = schema.contextHandle.apply {
+            if (!supply(
+                    MavenVersionContext(
+                        parent.group,
+                        parent.artifact,
+                        parent.version!! /* We can make this non-null as the parent section of a pom has to be fully qualified, may want to see if property substitutions should be used here. */
+                    )
+                )
+            ) return null
+        }
+        val pom = c.getValue(schema.pom)
 
         mapper.readValue<Pom>(
             pom.open()
         ).let {
             Pom(
-                it.groupId ?: it.tryLoadParent(mapper, schema)?.groupId ?: throw IllegalStateException("Failed to load groupId of artifact: ${it.artifactId}"),
+                it.groupId ?: it.tryLoadParent(mapper, schema)?.groupId
+                ?: throw IllegalStateException("Failed to load groupId of artifact: ${it.artifactId}"),
                 it.artifactId,
                 it.version,
                 it.properties,
@@ -35,7 +44,6 @@ private fun Pom.tryLoadParent(mapper: ObjectMapper, schema: MavenSchema): Pom? {
                 it.dependencies,
                 it.repositories
             )
-//            it.groupId = it.groupId ?: it.tryLoadParent(mapper, schema)?.groupId ?: throw IllegalStateException("Failed to load groupId of artifact: ${it.artifactId}")
         }
     } catch (e: IOException) {
         e.printStackTrace()

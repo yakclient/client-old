@@ -7,11 +7,12 @@ import net.yakclient.client.util.resource.SafeResource
 
 internal interface MavenSchema : Schema<MavenArtifactContext> {
 
-    val meta : SchemaMeta<MavenArtifactContext, SafeResource>// by abstractScheme<C, SafeResource>()
-//    open val versionedArtifact by abstractScheme<C, URL?>()
+    val meta: SchemaMeta<MavenArtifactContext, SafeResource>// by abstractScheme<C, SafeResource>()
+
+    //    open val versionedArtifact by abstractScheme<C, URL?>()
 //    open val artifact by abstractScheme<C, URL>()
-    val pom : SchemaMeta<MavenVersionContext, SafeResource>
-    val jar : SchemaMeta<MavenVersionContext, SafeResource>
+    val pom: SchemaMeta<MavenVersionContext, SafeResource>
+    val jar: SchemaMeta<MavenVersionContext, SafeResource>
 
 //    override fun validate(c: C): ContextHandler<C>? = ContextHandler(c).run {
 //        if (!get<Any, Schema.Context>(jar).isReachable()) null else this//throw InvalidSchemaException("Artifact: '${c.project.group}:${c.project.artifact}:${c.project.version}' not found")
@@ -21,7 +22,10 @@ internal interface MavenSchema : Schema<MavenArtifactContext> {
 internal open class MavenArtifactContext(
     val group: String,
     val artifact: String,
-) : Schema.Context
+) : Schema.Context {
+    override fun toString(): String = "MavenArtifactContext(group='$group', artifact='$artifact')"
+}
+
 
 internal open class MavenVersionContext(
 //    ac: MavenArtifactContext,
@@ -29,6 +33,8 @@ internal open class MavenVersionContext(
     artifact: String,
     val version: String
 ) : MavenArtifactContext(group, artifact) {
-    constructor(ac: MavenArtifactContext, version:String) : this(ac.group,ac.artifact,version)
+    constructor(ac: MavenArtifactContext, version: String) : this(ac.group, ac.artifact, version)
+
+    override fun toString(): String = "MavenVersionContext(version='$version', group='$artifact', version='$version')"
 }
 

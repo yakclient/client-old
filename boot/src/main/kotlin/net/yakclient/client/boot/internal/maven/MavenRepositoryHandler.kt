@@ -66,16 +66,11 @@ internal class MavenRepositoryHandler(
         return MavenDescriptor(desc.group, desc.artifact, version)
     }
 
-
     private fun findInternal(_desc: MavenDescriptor): Dependency? {
         val desc = substituteVersion(_desc) ?: return null
-//        return schema.validate(MavenArtifactContext(substituteVersion(desc) ?: return null)) {
         logger.log(Level.FINEST, "Loading maven dependency: '$desc'")
 
-
         fun loadPomDependencies(pom: Pom): List<MavenDependency> {
-//                val pom = xml.readValue<Pom>(pr.open())
-
             return pom.dependencies?.map { dep ->
                 val depGroup = dep.groupId
                 val depArtifact = dep.artifactId
@@ -105,10 +100,8 @@ internal class MavenRepositoryHandler(
 
         val pom = xml.readValue<Pom>(
             pomResource.open()
-                ?: throw IllegalArgumentException("Failed to read pom of dependency: $desc in repo: '${settings.url ?: "MAVEN CENTRAL(url: '$mavenCentral')"}'")
         )
-//            val pom = get(pom) ?: return@validate null
-//            if (!pom.toURL().isReachable()) return@validate null
+
         val dependencies = loadPomDependencies(pom)
 
         val needed = dependencies.filter {
@@ -117,7 +110,7 @@ internal class MavenRepositoryHandler(
                 else -> false
             }
         } + dependencies.filter { it.scope == "import" }.map {
-            fun validatePom(ms: MavenSchema): SafeResource? {
+            fun validatePom(ms: MavenSchema): SafeResource {
                 val handle = ms.contextHandle
                 handle.supply(MavenVersionContext(it.groupId, it.artifactId, it.version!!))
                 val importedPom by handle[ms.pom]
@@ -125,13 +118,7 @@ internal class MavenRepositoryHandler(
                 return importedPom
             }
 
-            xml.readValue<Pom>(
-                (validatePom(schema)
-                    ?: (if (settings.type != RepositoryType.MAVEN_CENTRAL) validatePom(
-                        RemoteMavenSchema(mavenCentral)
-                    ) else null)
-                    ?: throw IllegalStateException("Failed to find imported maven pom dependency type: $it")).open()
-            )
+            xml.readValue<Pom>(validatePom(schema).open())
         }.flatMap(::loadPomDependencies)
 
         val repositories = (pom.repositories ?: HashSet())
@@ -140,7 +127,12 @@ internal class MavenRepositoryHandler(
                 if (!it.contains(settings.url)) it + (settings.url
                     ?: mavenCentral /* TODO Doing the null check then if null putting maven central is not a great way of doing this */) else it
             }.filterNot { it == mavenCentral }
-            .mapTo(HashSet()) { RepositorySettings(RepositoryType.MAVEN, it) } + RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)
+            .mapTo(HashSet()) {
+                RepositorySettings(
+                    RepositoryType.MAVEN,
+                    it
+                )
+            } + RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)
 
         val jar by handler[schema.pom]
 
