@@ -1,6 +1,8 @@
-package net.yakclient.client.boot.internal.maven
+package net.yakclient.client.boot.maven
 
-import net.yakclient.client.boot.schema.SchemaHandler
+import net.yakclient.client.util.SchemaHandler
+import net.yakclient.client.util.SchemaMeta
+import net.yakclient.client.util.resource.SafeResource
 import net.yakclient.client.util.toResource
 import java.nio.file.Files
 import java.nio.file.Path
@@ -22,7 +24,7 @@ internal object MavenLocalSchema : MavenSchema {
         val b = it.baseArtifact
         b.resolve("maven-metadata-local.xml").toResource()
     }
-    override val jar = handler.register(MavenVersionContext::class) {
+    override val jar : SchemaMeta<MavenVersionContext, SafeResource?> = handler.register(MavenVersionContext::class) {
         it.versionedArtifact.resolve("${it.artifact}-${it.version}.jar").toResource()
     }
     override val pom = handler.register(MavenVersionContext::class) {

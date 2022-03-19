@@ -1,5 +1,6 @@
-package net.yakclient.client.util
+package net.yakclient.client.util.test
 
+import net.yakclient.client.util.LazyMap
 import kotlin.test.Test
 
 class TestLazyMap  {

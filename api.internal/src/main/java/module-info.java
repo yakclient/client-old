@@ -8,4 +8,6 @@ module yakclient.client.api.internal {
     requires com.fasterxml.jackson.kotlin;
 
     opens net.yakclient.client.api.internal to com.fasterxml.jackson.databind;
+
+    provides net.yakclient.client.boot.repository.RepositoryProvider with net.yakclient.client.api.internal.MojangRepositoryProvider;
 }

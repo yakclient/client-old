@@ -1,4 +1,4 @@
-package net.yakclient.client.boot.internal.maven
+package net.yakclient.client.boot.maven
 
 import net.yakclient.client.boot.dependency.Dependency
 

@@ -1,5 +1,7 @@
-package net.yakclient.client.util
+package net.yakclient.client.util.test
 
+import net.yakclient.client.util.uriAt
+import net.yakclient.client.util.urlAt
 import org.junit.jupiter.api.Test
 import java.net.URL
 

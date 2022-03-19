@@ -6,4 +6,6 @@ dependencies {
     implementation("io.github.config4k:config4k:0.4.2")
     implementation("com.typesafe:config:1.4.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation(kotlin("reflect"))
+
 }

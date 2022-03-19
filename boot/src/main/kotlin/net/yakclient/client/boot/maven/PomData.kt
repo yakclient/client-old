@@ -1,18 +1,6 @@
-package net.yakclient.client.boot.internal.maven
+package net.yakclient.client.boot.maven
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.core.ObjectCodec
-import com.fasterxml.jackson.core.TreeNode
-import com.fasterxml.jackson.databind.DeserializationContext
-import com.fasterxml.jackson.databind.JsonDeserializer
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.KeyDeserializer
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.databind.node.ValueNode
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 internal data class MavenDependency(
@@ -28,12 +16,11 @@ internal data class MavenDependency(
 internal data class PomParent(
     val groupId: String,
     val artifactId: String,
-    val version: String?
+    val version: String
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-//@JsonDeserialize(using = RepositoryDeserializer::class)
-internal data class Pom(
+internal data class PomData(
     val groupId: String?,
     val artifactId: String,
     val version: String?,

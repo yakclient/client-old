@@ -15,14 +15,16 @@ import net.yakclient.client.boot.dependency.DependencyResolver
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.internal.jpm.ResolvedJpmArchive
-import net.yakclient.client.boot.internal.maven.MavenDescriptor
+import net.yakclient.client.boot.maven.MavenDescriptor
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.repository.RepositoryType
 import net.yakclient.client.util.*
+import net.yakclient.client.util.resource.SafeResource
 import java.net.URI
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.logging.Level
 import kotlin.system.exitProcess
 
@@ -38,6 +40,8 @@ public object YakClient : Extension() {
         e.printStackTrace()
         exitProcess(1)
     }
+
+    internal fun loadResource(name: String) : SafeResource? = YakClient::class.java.getResource(name)?.let { Paths.get(it.toURI()) }?.toResource()
 }
 
 private const val SETTINGS_NAME = "settings.conf"

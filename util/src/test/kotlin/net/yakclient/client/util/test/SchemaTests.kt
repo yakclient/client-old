@@ -1,8 +1,9 @@
-package net.yakclient.client.boot.test.schema
+package net.yakclient.client.util.test
 
-import net.yakclient.client.boot.schema.Schema
-import net.yakclient.client.boot.schema.SchemaHandler
-import net.yakclient.client.boot.schema.SchemaMeta
+import net.yakclient.client.util.Schema
+import net.yakclient.client.util.SchemaHandler
+import net.yakclient.client.util.SchemaMeta
+import kotlin.reflect.KClass
 import kotlin.test.Test
 
 class SchemaTests {
@@ -43,7 +44,13 @@ interface PersonSchema : Schema<Person> {
 class PersonSchemaImpl(override val handler: SchemaHandler<Person>) : PersonSchema {
     init {
         handler.registerValidator<Person> {
+            println("Validating non-qualified")
             it.name == "Bobbie"
+        }
+
+        handler.registerValidator<QualifiedPerson> {
+            println("Validating Qualified")
+            true
         }
     }
 

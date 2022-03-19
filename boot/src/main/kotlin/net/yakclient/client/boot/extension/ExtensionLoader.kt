@@ -43,7 +43,7 @@ public object ExtensionLoader {
     ): Extension {
         if (settings.repositories?.any { it.type == RepositoryType.MAVEN_LOCAL } == true) logger.log(
             Level.WARNING,
-            "Extension: ${settings.name} contains a repository referencing maven local! Make sure this is removed in all production builds."
+            "Extension: '${settings.name}' contains a repository referencing maven local! Make sure this is removed in all production builds."
         )
 
         val loader = ArchiveLoader(parent.ref.classloader, dependencies.map(::ArchiveComponent), ref)

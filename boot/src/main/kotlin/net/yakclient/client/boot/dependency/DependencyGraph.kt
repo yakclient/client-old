@@ -15,10 +15,9 @@ public object DependencyGraph {
     private val logger: Logger = Logger.getLogger(DependencyGraph::class.simpleName)
 
     private val graph: MutableMap<Dependency.Descriptor, DependencyNode> = HashMap()
-//    private val loaders: Map<RepositorySettings, DependencyLoader<*>> =
-//        LazyMap { DependencyLoader(RepositoryFactory.create(it)) }
 
-    public fun ofRepository(settings: RepositorySettings): DependencyLoader<*> = ofRepository(RepositoryFactory.create(settings)) //loaders[settings]!!
+    public fun ofRepository(settings: RepositorySettings): DependencyLoader<*> =
+        ofRepository(RepositoryFactory.create(settings)) //loaders[settings]!!
 
     public fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>): DependencyLoader<T> =
         DependencyLoader(handler)
@@ -54,7 +53,10 @@ public object DependencyGraph {
 
                 val children = dependency.dependants.mapTo(HashSet()) { d ->
                     d.possibleRepos.firstNotNullOfOrNull { r ->
-                        DependencyLoader((RepositoryFactory.create(r) as RepositoryHandler<Dependency.Descriptor>), resolver).loadInternal(
+                        DependencyLoader(
+                            (RepositoryFactory.create(r) as RepositoryHandler<Dependency.Descriptor>),
+                            resolver
+                        ).loadInternal(
                             d.desc,
                             DependencyTrace(trace, dependency.desc)
                         )
@@ -74,11 +76,19 @@ public object DependencyGraph {
 
                 val dependencies = children.filterNot { c -> children.any { it.provides(c.desc) } }
 
-                val reference = resolver(ArchiveUtils.find(cached.path), dependencies.map(DependencyNode::reference))
 
-                val node = DependencyNode(cached.desc, reference, children)
+                val reference = if (cached != null) resolver(ArchiveUtils.find(cached.path), dependencies.flatMap {
+                    fun DependencyNode.referenceOrChildren(): List<ResolvedArchive> =
+                        this.reference?.let(::listOf) ?: this.children.flatMap { n ->
+                            n.reference?.let(::listOf) ?: n.referenceOrChildren()
+                        }
 
-                graph[cached.desc] = node
+                    it.referenceOrChildren()
+                }) else null
+
+                val node = DependencyNode(resolved, reference, children)
+
+                graph[node.desc] = node
 
                 node
             }
@@ -88,8 +98,8 @@ public object DependencyGraph {
 
 internal class DependencyNode(
     val desc: CachedDependency.Descriptor,
-    val reference: ResolvedArchive,
-    private val children: Set<DependencyNode>,
+    val reference: ResolvedArchive?,
+    val children: Set<DependencyNode>,
 ) {
     fun provides(other: Dependency.Descriptor): Boolean = children.any { it.desc == other || it.provides(other) }
 }

@@ -1,7 +1,8 @@
-package net.yakclient.client.boot.schema
+package net.yakclient.client.util
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
+import kotlin.reflect.full.isSuperclassOf
 
 // TODO possibly make a way to ignore values or have values not need to be present yet. For example in the maven schema the jar and pom dont need to be present if a version isn't defined in the context.
 public interface Schema<C : Schema.Context> {
@@ -84,7 +85,9 @@ public fun interface ValueProvider<C : Schema.Context, T> : (C) -> T
 public fun interface ContextValidator<C : Schema.Context> : (C) -> Boolean
 
 public class SchemaHandler<C : Schema.Context> {
-    internal val validators: MutableMap<String, ContextValidator<*>> = HashMap()
+
+    internal val validators: MutableMap<KClass<*>, ContextValidator<*>> =
+        HashMap()// MutableList<Pair<KClass<*>, ContextValidator<*>>> = ArrayList()
 //    internal val schemes: MutableMap<String, ValueProvider<*, *>> = LinkedHashMap()
 //    internal val tiers: Tiers<S> = Tiers()
 
@@ -107,7 +110,7 @@ public class SchemaHandler<C : Schema.Context> {
         type: KClass<NC>,
         validator: ContextValidator<NC>
     ) {
-        validators[type.java.name] = validator
+        validators[type] to validator
     }
 
     public inline fun <reified NC : C> registerValidator(
@@ -176,11 +179,13 @@ public class ContextHandler<C : Schema.Context>(
 
     public fun supply(c: C): Boolean =
         // Check if there is a validator and if there is then validate. If not then no checks are required.
-        if ((handler.validators[c::class.java.name] as? ContextValidator<Schema.Context>)?.invoke(c) == false) {
-            false
-        } else {
+
+        if (handler.validators.filter { it.key.isSuperclassOf(c::class) }
+                .all { (it as ContextValidator<C>).invoke(c) }) {
             _context = c
             true
+        } else {
+            false
         }
 //    public fun <T> KProperty1<out Schema, *>.get() : T = get(this@ContextHandler)
 }

@@ -4,7 +4,7 @@ import net.yakclient.client.util.LazyMap
 import java.util.*
 
 public object RepositoryFactory {
-    private val providers = LazyMap<RepositoryType, RepositoryProvider>(EnumMap(RepositoryType::class.java)) { key ->
+    private val providers = LazyMap<String, RepositoryProvider> { key ->
         ServiceLoader.load(RepositoryProvider::class.java)
             .filter { it.provides(key) }
             .takeUnless { it.size > 1 }

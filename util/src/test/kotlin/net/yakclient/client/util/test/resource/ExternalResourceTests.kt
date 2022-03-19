@@ -1,7 +1,8 @@
-package net.yakclient.client.util.resource
+package net.yakclient.client.util.test.resource
 
 import net.yakclient.client.util.openStream
 import net.yakclient.client.util.readHexToBytes
+import net.yakclient.client.util.resource.ExternalResource
 import net.yakclient.client.util.toResource
 import java.net.URI
 import java.security.MessageDigest
