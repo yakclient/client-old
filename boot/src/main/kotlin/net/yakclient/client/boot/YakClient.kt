@@ -7,19 +7,15 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.required
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
-import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.dependency.BasicDepResolver
 import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.dependency.DependencyResolutionFallBack
-import net.yakclient.client.boot.dependency.DependencyResolver
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.internal.jpm.ResolvedJpmArchive
-import net.yakclient.client.boot.maven.MavenDescriptor
+import net.yakclient.client.boot.maven.MAVEN_CENTRAL
 import net.yakclient.client.boot.repository.RepositoryFactory
-import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.boot.repository.RepositoryType
 import net.yakclient.client.util.*
 import net.yakclient.client.util.resource.SafeResource
 import java.net.URI
@@ -102,7 +98,7 @@ public fun init(yakDir: Path) {
 
     val populator = DependencyGraph.DependencyLoader(
         RepositoryFactory.create(
-            RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)
+            RepositorySettings(MAVEN_CENTRAL, null)
         ),
         DependencyResolutionFallBack(BasicDepResolver()) { archive, _ ->
             ResolvedJpmArchive(

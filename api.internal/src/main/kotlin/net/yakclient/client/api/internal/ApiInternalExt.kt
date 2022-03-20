@@ -8,20 +8,16 @@ import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ArchiveUtils.resolve
 import net.yakclient.client.boot.archive.ResolvedArchive
-import net.yakclient.client.boot.dependency.Dependency
 import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
-import net.yakclient.client.boot.maven.MavenDescriptor
-import net.yakclient.client.boot.maven.MavenRepositoryHandler
 import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveLoader
-import net.yakclient.client.boot.repository.RepositoryHandler
-import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.boot.repository.RepositoryType
-import net.yakclient.client.util.*
+import net.yakclient.client.util.copyTo
+import net.yakclient.client.util.make
+import net.yakclient.client.util.resolve
+import net.yakclient.client.util.toResource
 import java.util.*
-import kotlin.collections.HashSet
 
 public class ApiInternalExt : Extension() {
 

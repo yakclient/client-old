@@ -49,7 +49,7 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
         val parentLayers =
             parents.filterIsInstance<ResolvedJpmArchive>().mapTo(HashSet()) { it.layer }
 
-        val configuration = Configuration.resolve(
+        val configuration = Configuration.resolveAndBind(
             finder,
             parentLayers.map { it.configuration() } + ModuleLayer.boot().configuration(),
             ModuleFinder.of(),
