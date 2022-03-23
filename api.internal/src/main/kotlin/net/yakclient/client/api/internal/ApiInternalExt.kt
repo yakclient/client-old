@@ -7,16 +7,12 @@ import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ArchiveUtils.resolve
-import net.yakclient.client.boot.archive.ResolvedArchive
-import net.yakclient.client.boot.dependency.DependencyGraph
+import net.yakclient.client.boot.archive.patch
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
-import net.yakclient.client.boot.loader.ArchiveComponent
-import net.yakclient.client.boot.loader.ArchiveLoader
-import net.yakclient.client.util.copyTo
-import net.yakclient.client.util.make
-import net.yakclient.client.util.resolve
-import net.yakclient.client.util.toResource
+import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
+import net.yakclient.client.boot.loader.ClConglomerate
+import net.yakclient.client.util.*
 import java.util.*
 
 public class ApiInternalExt : Extension() {
@@ -27,11 +23,12 @@ public class ApiInternalExt : Extension() {
         val manifest = ObjectMapper().registerModule(KotlinModule())
             .readValue<ClientManifest>(YakClient.settings.clientJsonFile.toFile())
 
-        val versionPath = YakClient.settings.minecraftPath resolve manifest.version resolve "${manifest.version}.jar"
-        if (versionPath.make()) {
+        val versionPath = YakClient.settings.minecraftPath resolve manifest.version
+        val minecraftPath = versionPath resolve "minecraft-${manifest.version}.jar"
+        if (minecraftPath.make()) {
             val client = (manifest.downloads[ManifestDownloadType.CLIENT]
                 ?: throw IllegalStateException("Invalid client.json manifest. Must have a client download available!"))
-            client.url.toResource(HexFormat.of().parseHex(client.checksum)).copyTo(versionPath)
+            client.url.toResource(HexFormat.of().parseHex(client.checksum)).copyTo(minecraftPath)
         }
 
         // TODO add support for excluding based on the client manifest
@@ -64,23 +61,42 @@ public class ApiInternalExt : Extension() {
 //                }
 //        }
 
+//        val
 
-        val depLoader = DependencyGraph.ofRepository(MojangRepositoryHandler)
-        val mcDeps: List<ResolvedArchive> = manifest.libraries.map { depLoader.load(it.name)!! }
+//        val depLoader = DependencyGraph.ofRepository(MojangRepositoryHandler)
+//        val mcDeps: List<ResolvedArchive> = manifest.libraries.map { depLoader.load(it.name)!! }
 
-        val reference: ArchiveReference = ArchiveUtils.find(versionPath)
+        val overriddenNames = hashMapOf<String, String>()
 
-        val loader = ArchiveLoader(
-            loader,
-            mcDeps.map(::ArchiveComponent),
-            reference
-        ) // ClConglomerate(loader, (mcDeps + reference).map(::ArchiveConglomerateProvider))
+        val libNameS: Map<String, String> = LazyMap(overriddenNames) { n ->
+            n.split(':').let { "${it[1]}-${it[2]}" }
+        }
+
+        val libPath = versionPath resolve YakClient.settings.minecraftLibDir
+
+//        val mcReference: ArchiveReference = ArchiveUtils.find(minecraftPath)
+
+
+        val references = manifest.libraries.map {
+            val artifact = it.downloads.artifact
+            val path = libPath resolve "${libNameS[it.name]!!}.jar"
+            if (path.make()) artifact.url.toResource(HexFormat.of().parseHex(artifact.checksum)) copyTo path else path
+        }.map(ArchiveUtils::find)// + mcReference
+
+//        references.patch("java.objc.bridge", )
+
+        val loader = ClConglomerate(this.loader, references.map(::ArchiveConglomerateProvider))
+
+
+//        val loader = ArchiveLoader(
+//            loader,
+//            references.map(::ArchiveComponent),
+//            mcReference
+//        ) // ClConglomerate(loader, (mcDeps + reference).map(::ArchiveConglomerateProvider))
 
         val minecraft = resolve(
-            reference,
-            loader,
-            mcDeps
-        )
+            references,
+        ) { loader }
 
         val settings = ExtensionLoader.loadSettings(ext)
 
@@ -89,6 +105,6 @@ public class ApiInternalExt : Extension() {
             this,
             settings = settings,
             dependencies = ExtensionLoader.loadDependencies(settings)
-                .let { it.toMutableList().also { m -> m.add(minecraft) } }).onLoad()
+                .let { it.toMutableList().also { m -> m.addAll(minecraft) } }).onLoad()
     }
 }

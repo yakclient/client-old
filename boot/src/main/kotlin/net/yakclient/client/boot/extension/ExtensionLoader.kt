@@ -23,7 +23,9 @@ public object ExtensionLoader {
 
         return settings.dependencies?.map { d ->
             repositories.firstNotNullOfOrNull { r -> r.load(d) }
-                ?: throw IllegalArgumentException("Failed to find dependency: $d")
+                ?: throw IllegalArgumentException("Extension '${settings.name}' has a required dependency of '$d' which cannot be found in the specified repositories: '${
+                    settings.repositories?.joinToString { "{type=${it.type}, url=${it.url ?: "'NO URL(make sure this is )'"}" } ?: "NONE"
+                }'")
         } ?: ArrayList()
     }
 

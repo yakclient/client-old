@@ -93,7 +93,7 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
 
         layer.modules().forEach { m ->
             m.packages.forEach { p ->
-                controller.addExports(m, p, YakClient::class.java.module)
+                controller.addOpens(m, p, YakClient::class.java.module)
             }
         }
 

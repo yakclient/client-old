@@ -47,6 +47,7 @@ public class ArchiveConglomerateProvider(
     override val packages: Set<String> = archive.reader.entries()
         .map(ArchiveReference.Entry::name)
         .filter { it.endsWith(".class") }
+        .filterNot { it == "module-info.class" }
         .mapTo(HashSet()) { it.removeSuffix(".class").replace('/', '.').packageFormat }
     override val resources: Set<String> = archive.reader.entries()
         .map { it.name }

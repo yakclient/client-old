@@ -1,11 +1,12 @@
 package net.yakclient.client.boot.repository
 
+import net.yakclient.client.boot.archive.ArchiveCatalog
 import net.yakclient.client.util.LazyMap
 import java.util.*
 
 public object RepositoryFactory {
     private val providers = LazyMap<String, RepositoryProvider> { key ->
-        ServiceLoader.load(RepositoryProvider::class.java)
+       ArchiveCatalog.loadService(RepositoryProvider::class)
             .filter { it.provides(key) }
             .takeUnless { it.size > 1 }
             ?.firstOrNull()

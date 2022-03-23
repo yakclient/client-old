@@ -102,11 +102,12 @@ public fun URI.readHexToBytes() : ByteArray = HexFormat.of().parseHex(String(rea
 
 public fun Path.toResource() : SafeResource = LocalResource(this)
 
-public infix fun SafeResource.copyTo(to: Path) {
+public infix fun SafeResource.copyTo(to: Path) : Path {
     Channels.newChannel(open()).use { cin ->
         to.make()
         FileOutputStream(to.toFile()).use { fout ->
             fout.channel.transferFrom(cin, 0, Long.MAX_VALUE)
         }
     }
+    return to
 }

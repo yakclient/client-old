@@ -60,6 +60,7 @@ public fun main(args: Array<String>) {
         YakClient.logger.log(Level.INFO, "Error occurred, Exiting gracefully")
         run.exceptionOrNull()?.printStackTrace()
     } else YakClient.logger.log(Level.INFO, "Successfully Quit")
+
 }
 
 public fun init(yakDir: Path) {

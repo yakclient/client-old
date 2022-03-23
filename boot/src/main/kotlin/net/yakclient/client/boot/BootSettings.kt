@@ -21,7 +21,8 @@ public data class BootSettings(
 
     val tempDir: Path,
     val moduleTemp: Path,
-    val minecraftDir: Path
+    val minecraftDir: Path,
+    val minecraftLibDir: Path,
 ) : ExtensionSettings {
     override val extensionClass: String = YakClient::class.java.name
     override val loader: String? = null
