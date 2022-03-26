@@ -6,7 +6,7 @@ import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.LazyMap
+import java.nio.file.Path
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -17,83 +17,94 @@ public object DependencyGraph {
     private val graph: MutableMap<Dependency.Descriptor, DependencyNode> = HashMap()
 
     public fun ofRepository(settings: RepositorySettings): DependencyLoader<*> =
-        ofRepository(RepositoryFactory.create(settings)) //loaders[settings]!!
+        ofRepository(RepositoryFactory.create(settings))
 
     public fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>): DependencyLoader<T> =
         DependencyLoader(handler)
 
-    public open class DependencyLoader<T : Dependency.Descriptor>(
+    public class DependencyLoader<T : Dependency.Descriptor> internal constructor(
         private val repo: RepositoryHandler<T>,
         private val resolver: DependencyResolver = BasicDepResolver()
     ) {
         public fun load(name: String): ResolvedArchive? {
-            return loadInternal(repo.loadDescription(name) ?: return null, null)?.reference
+            return load(repo.loadDescription(name) ?: return null)?.reference
         }
 
-        private fun loadInternal(desc: T, trace: DependencyTrace?): DependencyNode? {
-            val name = desc.artifact
+        private fun load(desc: T): DependencyNode? {
+            return if (cacheInternal(desc, null)) loadCached(DependencyCache.getOrNull(desc) ?: return null)
+            else null
+        }
 
-            logger.log(Level.INFO, "Loading dependency: ${desc.artifact}-${desc.version}")
+        private fun cacheInternal(desc: T, trace: DependencyTrace?): Boolean {
 
-            fun isCyclic(dt: DependencyTrace?): Boolean =
-                dt?.desc?.artifact == name || (dt?.parent != null && isCyclic(dt.parent))
-
-            fun topDependency(trace: DependencyTrace?): Dependency.Descriptor =
-                if (trace == null) desc else if (trace.parent != null) topDependency(trace.parent) else trace.desc
-
-            if (isCyclic(trace)) throw CyclicDependenciesException(topDependency(trace))
+            if (trace?.isCyclic(desc) == true) throw CyclicDependenciesException(trace.topDependency() ?: desc)
 
             val resolved = CachedDependency.Descriptor(desc.artifact, desc.version)
 
-            return if (graph.contains(resolved) /* No need to check the dependency cache as the graph should have it if the graph does. */) graph[resolved]!!
-            else {
-                val dependency = repo.find(desc) ?: return null
+            if (!graph.contains(resolved)) {
+                if (DependencyCache.contains(resolved)) return true
 
-                val cached = DependencyCache.cache(dependency)
+                val dependency = repo.find(desc) ?: return false
 
-                val children = dependency.dependants.mapTo(HashSet()) { d ->
+                dependency.dependants.forEach { d ->
+                    assert(d.possibleRepos.isNotEmpty()) { "Dependency: ${d.desc.artifact} has no associated repositories! (Issue in the repository handler: ${repo::class.java})" }
                     d.possibleRepos.firstNotNullOfOrNull { r ->
-                        DependencyLoader(
-                            (RepositoryFactory.create(r) as RepositoryHandler<Dependency.Descriptor>),
-                            resolver
-                        ).loadInternal(
-                            d.desc,
-                            DependencyTrace(trace, dependency.desc)
-                        )
+                        val handler = RepositoryFactory.create(r) as RepositoryHandler<Dependency.Descriptor>
+                        val loader = DependencyLoader(handler, resolver)
+
+                        loader.cacheInternal(d.desc, DependencyTrace(trace, dependency.desc))
                     } ?: run {
                         logger.log(
-                            Level.SEVERE, "Failed to find dependency: $d in trace: ${
-                                trace?.flatten()?.asReversed()
-                                    ?.joinToString(
-                                        separator = " -> ",
-                                        postfix = " -> $d"
-                                    ) ?: "${dependency.desc.artifact} -> $d"
-                            }"
+                            Level.SEVERE,
+                            "Failed to find dependency: $d in trace: ${trace.toPrettyString(d, dependency)}"
                         )
-                        return null
+
+                        return false
                     }
                 }
 
-                val dependencies = children.filterNot { c -> children.any { it.provides(c.desc) } }
+                DependencyCache.cache(dependency)
+                return true
+            } else return true
+        }
 
 
-                val reference = if (cached != null) resolver(ArchiveUtils.find(cached.path), dependencies.flatMap {
-                    fun DependencyNode.referenceOrChildren(): List<ResolvedArchive> =
-                        this.reference?.let(::listOf) ?: this.children.flatMap { n ->
-                            n.reference?.let(::listOf) ?: n.referenceOrChildren()
-                        }
+        private fun loadCached(cached: CachedDependency): DependencyNode {
+            val desc = cached.desc
+            logger.log(Level.INFO, "Loading dependency: ${desc.artifact}-${desc.version}")
 
-                    it.referenceOrChildren()
-                }) else null
+            val cachedDeps: List<CachedDependency> = cached.dependants
+                .map { DependencyCache.getOrNull(it) }
+                .takeUnless { it.any { d -> d == null } }
+                ?.filterNotNull() ?: throw IllegalStateException("Cached dependency: '$desc' ")
 
-                val node = DependencyNode(resolved, reference, children)
+            val children: Set<DependencyNode> = cachedDeps.mapTo(HashSet()) { graph[it.desc] ?: loadCached(it) }
 
-                graph[node.desc] = node
+            val dependencies: List<DependencyNode> =
+                children.filterNot { c -> children.any { it.provides(c.desc) } }
 
-                node
+            val reference: ResolvedArchive? =
+                if (cached.path != null) loadReference(cached.path, dependencies) else null
+
+            return DependencyNode(desc, reference, children).also {
+                graph[it.desc] = it
             }
         }
+
+        private fun loadReference(
+            path: Path,
+            dependencies: List<DependencyNode>
+        ) = resolver(ArchiveUtils.find(path), dependencies.flatMap {
+            fun DependencyNode.referenceOrChildren(): List<ResolvedArchive> =
+                this.reference?.let(::listOf) ?: this.children.flatMap { n ->
+                    n.reference?.let(::listOf) ?: n.referenceOrChildren()
+                }
+
+            it.referenceOrChildren()
+        })
     }
+
+
 }
 
 internal class DependencyNode(
@@ -103,6 +114,21 @@ internal class DependencyNode(
 ) {
     fun provides(other: Dependency.Descriptor): Boolean = children.any { it.desc == other || it.provides(other) }
 }
+
+private fun DependencyTrace.isCyclic(desc: Dependency.Descriptor): Boolean =
+    (this.desc.artifact == desc.artifact) || ((this.parent != null) && this.parent.isCyclic(desc))
+
+private fun DependencyTrace.topDependency(): Dependency.Descriptor? =
+    if (this.parent != null) parent.topDependency() else this.desc
+
+private fun DependencyTrace?.toPrettyString(
+    d: Dependency.Transitive,
+    dependency: Dependency
+) = this?.flatten()?.asReversed()
+    ?.joinToString(
+        separator = " -> ",
+        postfix = " -> $d"
+    ) ?: "${dependency.desc.artifact} -> $d"
 
 internal data class DependencyTrace(
     val parent: DependencyTrace?,

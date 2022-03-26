@@ -16,6 +16,4 @@ internal class ResolvedJpmArchive(
     private val services: Map<String, List<Class<*>>> = module.descriptor.provides().associate { it.service() to it.providers().map(classloader::loadClass) }
 
     override fun loadService(name: String): List<Class<*>> = services[name] ?: ArrayList()
-//    override val serviceProviders: Map<String, List<Class<*>>> =
-//        module.descriptor.provides().associate { it.service() to it.providers().map { c -> classloader.loadClass(c) } }
 }

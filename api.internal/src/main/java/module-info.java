@@ -9,5 +9,5 @@ module yakclient.client.api.internal {
 
     opens net.yakclient.client.api.internal to com.fasterxml.jackson.databind;
 
-    provides net.yakclient.client.boot.repository.RepositoryProvider with net.yakclient.client.api.internal.MojangRepositoryProvider;
+//    provides net.yakclient.client.boot.repository.RepositoryProvider with net.yakclient.client.api.internal.MojangRepositoryProvider;
 }

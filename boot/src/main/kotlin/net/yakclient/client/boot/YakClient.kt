@@ -99,7 +99,7 @@ public fun init(yakDir: Path) {
 
     val populator = DependencyGraph.DependencyLoader(
         RepositoryFactory.create(
-            RepositorySettings(MAVEN_CENTRAL, null)
+            RepositorySettings(MAVEN_CENTRAL)
         ),
         DependencyResolutionFallBack(BasicDepResolver()) { archive, _ ->
             ResolvedJpmArchive(

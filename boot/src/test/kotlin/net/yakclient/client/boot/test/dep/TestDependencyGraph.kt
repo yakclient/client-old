@@ -18,21 +18,10 @@ class TestDependencyGraph {
     fun `Test dependency graph`() {
         init(workingDir().parent("client").child("workingDir").toPath())
 
-        val ref = DependencyGraph.ofRepository(RepositorySettings(MAVEN_CENTRAL, null))
-            .load("org.jetbrains:annotations:13.0")
-
-        println(ref)
-    }
-
-    @Test
-    fun `Test local dependency loading`() {
-        init(workingDir().parent("client").child("workingDir").toPath())
-
-        val ref = DependencyGraph.ofRepository(RepositorySettings(MAVEN_CENTRAL, null))
+        val ref = DependencyGraph.ofRepository(RepositorySettings(MAVEN_CENTRAL))
             .load("com.google.guava:guava:31.0.1-jre")
 
         println(ref)
-//        println(ref.classloader.loadClass("com.google.common.annotations.Beta"))
     }
 
     @Test

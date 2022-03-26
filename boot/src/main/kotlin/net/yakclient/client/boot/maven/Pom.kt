@@ -1,15 +1,12 @@
 package net.yakclient.client.boot.maven
 
-import com.fasterxml.jackson.dataformat.xml.XmlMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import net.yakclient.client.boot.repository.RepositorySettings
-import java.net.URL
 
 internal interface Pom {
     val parent: Pom?
     val desc: MavenDescriptor
     val properties: Map<String, String>
-    val repositories: List<String>
+    val repositories: List<RepositorySettings>
     val dependencies: Set<MavenDependency>
 
     fun findProperty(name: String): String?
@@ -29,22 +26,27 @@ internal data class ChildPom(
         )
     }
     override val properties: Map<String, String> by lazy {
-        (parent?.properties ?: mapOf()) + (data.properties ?: mapOf())
+        (parent?.properties ?: mapOf()) + data.properties
     }
-    override val repositories: List<String> by lazy {
+    override val repositories: List<RepositorySettings> by lazy {
         (parent?.repositories ?: listOf()) + (data.repositories
-            ?.map(PomRepository::url)
+            ?.map {
+                RepositorySettings(
+                    it.url,
+                    mapOf(URL_OPTION_NAME to MAVEN, LAYOUT_OPTION_NAME to (it.layout ?: DEFAULT_MAVEN_LAYOUT))
+                )
+            }
             ?: listOf())
     }
     override val dependencies: Set<MavenDependency> by lazy {
-        (parent?.dependencies ?: setOf()) + (data.dependencies?.mapTo(HashSet()) { (g, a, v, s) ->
+        (parent?.dependencies ?: setOf()) + data.dependencies?.mapTo(HashSet()) { (g, a, v, s) ->
             MavenDependency(
                 g,
                 a,
                 v,
                 s
             )
-        } ?: setOf())
+        }
     }
 
     override fun findProperty(name: String): String? = properties[name] ?: parent?.findProperty(name)
@@ -55,7 +57,7 @@ internal object TheSuperPom : Pom {
     override val desc: MavenDescriptor
         get() = throw IllegalStateException("Cannot query the descriptor of the super pom! It should already be known in the pom hierarchy.")
     override val properties: Map<String, String> = mapOf()
-    override val repositories: List<String> = listOf(mavenCentral)
+    override val repositories: List<RepositorySettings> = listOf(RepositorySettings(MAVEN_CENTRAL))
     override val dependencies: Set<MavenDependency> = setOf()
 
     override fun findProperty(name: String): String? = null

@@ -1,4 +1,4 @@
-package net.yakclient.client.boot.setting
+package net.yakclient.client.boot.extension
 
 import net.yakclient.client.boot.repository.RepositorySettings
 

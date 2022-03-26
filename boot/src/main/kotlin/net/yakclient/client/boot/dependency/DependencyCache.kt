@@ -7,7 +7,6 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.util.copyTo
 import net.yakclient.client.util.make
-import net.yakclient.client.util.downloadTo
 import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -22,7 +21,7 @@ internal object DependencyCache {
     private val logger: Logger = Logger.getLogger(DependencyCache::class.simpleName)
     private val all: MutableMap<CachedDependency.Descriptor, CachedDependency>
 
-    private val mapper: ObjectMapper = XmlMapper().registerModule(KotlinModule())
+    private val mapper: ObjectMapper = ObjectMapper().registerModule(KotlinModule())
 
     init {
         val metaFile = cacheMeta.toFile()
@@ -35,19 +34,15 @@ internal object DependencyCache {
 //            .associateByTo(ConcurrentHashMap()) { it.desc }
     }
 
-//    fun cache(dependency: CachedDependency) {
-//        all[dependency.desc] = dependency
-//    }
+    fun getOrNull(d: Dependency.Descriptor) : CachedDependency? = all[CachedDependency.Descriptor(d.artifact, d.version)]
 
-//    fun resolveAll(dependencies: Set<Dependency.Descriptor>): Pair<Set<CachedDependency>, Set<Dependency.Descriptor>> =
-//        all.keys.let { dependencies.intersect(it).mapNotNullTo(HashSet(), all::get) to dependencies.subtract(it) }
+    fun contains(d: Dependency.Descriptor) : Boolean = all.contains(CachedDependency.Descriptor(d.artifact, d.version))
 
-
-    fun cache(dependency: Dependency): CachedDependency? {
-        // Check if the artifact is null and if it is return as there is nothing to cache
-        if (dependency.jar == null) return null
-
+    fun cache(dependency: Dependency): CachedDependency {
         val desc = dependency.desc
+
+        // Check if we need to cache the jar
+        val cacheJar = dependency.jar != null
 
         // Create a cached descriptor
         val key = desc.let { CachedDependency.Descriptor(it.artifact, it.version) }
@@ -59,7 +54,7 @@ internal object DependencyCache {
 
         // Creating the dependency to return.
         val cachedDependency = CachedDependency(
-            jarPath,
+            jarPath.takeIf { cacheJar },
 
             // Mapping the dependencies to be pedantic
             dependency.dependants.map { CachedDependency.Descriptor(it.desc.artifact, it.desc.version) },
@@ -67,10 +62,12 @@ internal object DependencyCache {
         )
 
         // If the file exists then don't overwrite it, at this point it should not exist.
-        if (!Files.exists(jarPath)) {
+        // If the jar is null then we dont have to do this, still important to update
+        // meta.
+        if (!Files.exists(jarPath) && cacheJar) {
             logger.log(Level.INFO, "Downloading dependency: ${desc.artifact}-${desc.version}")
 
-            dependency.jar copyTo jarPath
+            dependency.jar!! copyTo jarPath
         }
 
         // Getting all the cache dependencies

@@ -1,8 +1,11 @@
+import net.yakclient.client.boot.internal.InternalLayoutProvider;
 import net.yakclient.client.boot.internal.InternalRepoProvider;
 import net.yakclient.client.boot.internal.jpm.JpmFinder;
 import net.yakclient.client.boot.internal.jpm.JpmResolver;
 import net.yakclient.client.boot.archive.ArchiveFinder;
 import net.yakclient.client.boot.archive.ArchiveResolver;
+import net.yakclient.client.boot.maven.MavenLayoutProvider;
+import net.yakclient.client.boot.maven.MavenRepositoryLayout;
 import net.yakclient.client.boot.repository.RepositoryProvider;
 
 module yakclient.client.boot {
@@ -27,7 +30,6 @@ module yakclient.client.boot {
 
     exports net.yakclient.client.boot;
     exports net.yakclient.client.boot.extension;
-    exports net.yakclient.client.boot.setting;
     exports net.yakclient.client.boot.lifecycle;
     exports net.yakclient.client.boot.exception;
     exports net.yakclient.client.boot.dependency;
@@ -50,8 +52,10 @@ module yakclient.client.boot {
     uses ArchiveResolver;
     uses ArchiveFinder;
     uses RepositoryProvider;
+    uses MavenLayoutProvider;
 
     provides ArchiveResolver with JpmResolver;
     provides ArchiveFinder with JpmFinder;
     provides RepositoryProvider with InternalRepoProvider;
+    provides MavenLayoutProvider with InternalLayoutProvider;
 }

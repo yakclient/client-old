@@ -1,7 +1,6 @@
-package net.yakclient.client.boot.setting
+package net.yakclient.client.boot.extension
 
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.boot.setting.ExtensionSettings
 
 public data class BasicExtensionSettings(
     override val extensionClass: String,

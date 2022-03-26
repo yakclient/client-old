@@ -8,29 +8,32 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 private val LOCAL = Path.of(System.getProperty("user.home")).resolve(".m2").resolve("repository")
+private val path = LOCAL.toAbsolutePath().toString()
 
-internal object LocalMavenHandler : MavenRepositoryHandler(RepositorySettings(MAVEN_LOCAL, null)) {
-    override fun metaOf(group: String, artifact: String): SafeResource? =
-        (baseArtifact(group, artifact)).resolve("maven-metadata-local.xml").takeIf(Files::exists)?.toResource()
+internal object LocalMavenLayout : MavenRepositoryLayout {
+    override val settings: RepositorySettings = RepositorySettings(
+        path, mapOf(
+            LAYOUT_OPTION_NAME to "local",
+            URL_OPTION_NAME to path
+        )
+    )
 
-    override fun pomOf(desc: MavenDescriptor): SafeResource? =
-        desc.versionedArtifact.resolve("${desc.artifact}-${desc.version}.pom").takeIf(Files::exists)?.toResource()
+    override fun artifactMetaOf(g: String, a: String): SafeResource =
+        (baseArtifact(g, a)).resolve("maven-metadata-local.xml").takeIf(Files::exists)?.toResource()
+            ?: throw InvalidMavenLayoutException("maven-metadata-local.xml", "local")
 
-    override fun jarOf(desc: MavenDescriptor): SafeResource? =
-        desc.versionedArtifact.resolve("${desc.artifact}-${desc.version}.jar").takeIf(Files::exists)?.toResource()
+    override fun pomOf(g: String, a: String, v: String): SafeResource =
+        versionedArtifact(g, a, v).resolve("${a}-${v}.pom").takeIf(Files::exists)?.toResource()
+            ?: throw InvalidMavenLayoutException("${a}-${v}.pom", "local")
+
+    override fun jarOf(g: String, a: String, v: String): SafeResource? =
+        versionedArtifact(g, a, v).resolve("${a}-${v}.jar").takeIf(Files::exists)?.toResource()
 }
 
 private fun baseArtifact(group: String, artifact: String): Path =
     LOCAL.resolve(group.replace('.', '/')).resolve(artifact)
 
-private val MavenDescriptor.versionedArtifact: Path
-    get() = (version
-        ?: throw IllegalArgumentException("Version of descriptor: '$group:$artifact' must not be null!")).let {
-        baseArtifact(
-            group,
-            artifact
-        ).resolve(it)
-    }
+private fun versionedArtifact(g: String, a: String, v: String): Path = baseArtifact(g, a).resolve(v)
 
 //private val LOCAL = Path.of(System.getProperty("user.home")).resolve(".m2").resolve("repository")
 //

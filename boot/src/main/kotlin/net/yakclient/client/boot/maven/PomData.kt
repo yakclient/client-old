@@ -7,7 +7,7 @@ internal data class MavenDependency(
     val groupId: String,
     val artifactId: String,
     val version: String?,
-    val scope: String?,
+    val scope: String = "compile",
 ) {
     fun toDescriptor(): MavenDescriptor = MavenDescriptor(groupId, artifactId, version)
 }
@@ -24,15 +24,16 @@ internal data class PomData(
     val groupId: String?,
     val artifactId: String,
     val version: String?,
-    val properties: Map<String, String>?,
+    val properties: Map<String, String> = mapOf(),
     val parent: PomParent?,
-    val dependencies: Set<MavenDependency>?,
+    val dependencies: Set<MavenDependency> = setOf(),
     val repositories: Set<PomRepository>?
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 internal data class PomRepository(
-    val url: String
+    val url: String,
+    val layout: String?
 )
 //
 //private class RepositoryDeserializer : JsonDeserializer<Pom>() {

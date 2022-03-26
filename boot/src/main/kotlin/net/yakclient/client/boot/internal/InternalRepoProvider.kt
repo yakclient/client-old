@@ -5,13 +5,11 @@ import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositoryProvider
 import net.yakclient.client.boot.repository.RepositorySettings
 
-
-
 public class InternalRepoProvider : RepositoryProvider {
     override fun provide(settings: RepositorySettings): RepositoryHandler<*> = when(settings.type) {
-        MAVEN_CENTRAL -> RemoteMavenHandler(RepositorySettings(MAVEN, mavenCentral))// MavenSchemaRepositoryHandler(RepositorySettings(MAVEN, mavenCentral), mavenCentralSchema)
-        MAVEN -> RemoteMavenHandler(RepositorySettings(settings.type, settings.url?: throw IllegalArgumentException("URL cannot be null for repository of type: ${settings.type}"))) //settings, RemoteMavenSchema(settings.url ?: throw IllegalArgumentException("URL cannot be null for repository of type: ${settings.type}")))
-        MAVEN_LOCAL -> LocalMavenHandler
+        MAVEN_CENTRAL -> MavenRepositoryHandler(CentralMavenLayout, settings) //RemoteMavenHandler(RepositorySettings(MAVEN, mavenCentral))// MavenSchemaRepositoryHandler(RepositorySettings(MAVEN, mavenCentral), mavenCentralSchema)
+        MAVEN -> MavenRepositoryHandler(MavenLayoutFactory.createLayout(settings), settings) //settings, RemoteMavenSchema(settings.url ?: throw IllegalArgumentException("URL cannot be null for repository of type: ${settings.type}")))
+        MAVEN_LOCAL -> MavenRepositoryHandler(LocalMavenLayout, settings)
         else -> throw IllegalArgumentException("Illegal repository type: ${settings.type}")
     }
 

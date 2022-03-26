@@ -15,24 +15,3 @@ internal class JpmFinder : ArchiveFinder<JpmReference> {
         )
     }
 }
-
-//internal class JpmFinder(
-//    private val finder: ModuleFinder
-//) : ArchiveFinder<JpmReference>, ModuleFinder {
-//    private val archives: Map<String, JpmReference> = finder.findAll().map{ JpmReference(it) }.associateBy { it.descriptor().name() }
-//
-//    override fun allArchives(): Set<JpmReference> = archives.values.toSet()
-//
-//    override fun findArchive(name: String): JpmReference = JpmReference(
-//        finder.find(name).orElseGet(null)
-//            ?: throw IllegalArgumentException("Failed to find archive: $name in finder: $finder")
-//    )
-//
-//    override fun find(name: String): Optional<ModuleReference> = Optional.of(findArchive(name))
-//
-//    override fun findAll(): Set<ModuleReference> = allArchives()
-//
-//    class Provider : ArchiveFinder.Provider {
-//        override fun provide(path: Path): JpmFinder = JpmFinder(ModuleFinder.of(path))
-//    }
-//}

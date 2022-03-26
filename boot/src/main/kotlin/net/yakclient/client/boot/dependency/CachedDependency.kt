@@ -5,7 +5,7 @@ import kotlin.reflect.full.isSuperclassOf
 
 
 internal data class CachedDependency(
-    val path: Path,
+    val path: Path?,
     val dependants: List<Descriptor>,
     val desc: Descriptor
 ) {
@@ -20,12 +20,10 @@ internal data class CachedDependency(
             other as Dependency.Descriptor
 
             if (artifact != other.artifact) return false
-//            if (version != other.version) return false
 
             return true
         }
 
-        override fun hashCode(): Int = //            result = 31 * result + (version?.hashCode() ?: 0)
-            artifact.hashCode()
+        override fun hashCode(): Int = artifact.hashCode()
     }
 }

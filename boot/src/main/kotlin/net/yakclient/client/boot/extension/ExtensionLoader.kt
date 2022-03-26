@@ -8,8 +8,6 @@ import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveLoader
 import net.yakclient.client.boot.maven.MAVEN_LOCAL
-import net.yakclient.client.boot.setting.BasicExtensionSettings
-import net.yakclient.client.boot.setting.ExtensionSettings
 import net.yakclient.client.util.toConfig
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -21,10 +19,15 @@ public object ExtensionLoader {
     public fun loadDependencies(settings: ExtensionSettings): List<ResolvedArchive> {
         val repositories = settings.repositories?.map(DependencyGraph::ofRepository) ?: listOf()
 
+
         return settings.dependencies?.map { d ->
             repositories.firstNotNullOfOrNull { r -> r.load(d) }
                 ?: throw IllegalArgumentException("Extension '${settings.name}' has a required dependency of '$d' which cannot be found in the specified repositories: '${
-                    settings.repositories?.joinToString { "{type=${it.type}, url=${it.url ?: "'NO URL(make sure this is )'"}" } ?: "NONE"
+                    settings.repositories?.joinToString(prefix = "[", postfix = "]") {
+                        "{type=${it.type}, options: ${
+                            it.options.map { (k, v) -> "'$k'='$v'" }.joinToString(prefix = "[", postfix = "]")
+                        }"
+                    } ?: "[]"
                 }'")
         } ?: ArrayList()
     }

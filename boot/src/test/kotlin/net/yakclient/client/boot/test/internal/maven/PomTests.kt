@@ -1,9 +1,8 @@
 package net.yakclient.client.boot.test.internal.maven
 
-import net.yakclient.client.boot.maven.MavenVersionContext
-import net.yakclient.client.boot.maven.Pom
-import net.yakclient.client.boot.maven.loadMavenPom
-import net.yakclient.client.boot.maven.mavenCentralSchema
+import net.yakclient.client.boot.internal.CentralMavenLayout
+import net.yakclient.client.boot.maven.*
+import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.resource.SafeResource
 import kotlin.test.Test
 
@@ -21,10 +20,7 @@ class PomTests {
 
     @Test
     fun `Test Pom Loading`() {
-        val c = mavenCentralSchema.contextHandle
-        assert(c.supply(MavenVersionContext("com.google.guava", "guava", "31.0.1-jre")))
-
-        val loadMavenPom = loadMavenPom( c.getValue(mavenCentralSchema.pom))
+        val loadMavenPom = loadMavenPom(CentralMavenLayout.pomOf("com.google.guava", "guava", "31.0.1-jre"))
         println(loadMavenPom)
     }
 }
