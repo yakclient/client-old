@@ -32,8 +32,8 @@ internal data class ChildPom(
         (parent?.repositories ?: listOf()) + (data.repositories
             ?.map {
                 RepositorySettings(
-                    it.url,
-                    mapOf(URL_OPTION_NAME to MAVEN, LAYOUT_OPTION_NAME to (it.layout ?: DEFAULT_MAVEN_LAYOUT))
+                    MAVEN,
+                    mapOf(URL_OPTION_NAME to it.url, LAYOUT_OPTION_NAME to (it.layout ?: DEFAULT_MAVEN_LAYOUT))
                 )
             }
             ?: listOf())

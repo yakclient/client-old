@@ -7,5 +7,6 @@ dependencies {
     implementation("com.typesafe:config:1.4.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     implementation(kotlin("reflect"))
+    implementation("org.apache.httpcomponents:httpclient:4.5.13")
 
 }

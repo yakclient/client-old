@@ -20,7 +20,7 @@ class PomTests {
 
     @Test
     fun `Test Pom Loading`() {
-        val loadMavenPom = loadMavenPom(CentralMavenLayout.pomOf("com.google.guava", "guava", "31.0.1-jre"))
+        val loadMavenPom = loadMavenPom(CentralMavenLayout.pomOf("com.google.guava", "guava", "31.0.1-jre"), CentralMavenLayout)
         println(loadMavenPom)
     }
 }

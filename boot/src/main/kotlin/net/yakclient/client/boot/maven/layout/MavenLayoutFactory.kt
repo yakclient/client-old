@@ -1,6 +1,7 @@
-package net.yakclient.client.boot.maven
+package net.yakclient.client.boot.maven.layout
 
 import net.yakclient.client.boot.archive.ArchiveCatalog
+import net.yakclient.client.boot.maven.DEFAULT_MAVEN_LAYOUT
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.LazyMap
 
@@ -14,7 +15,7 @@ public object MavenLayoutFactory {
     }
 
     private val layouts: Map<RepositorySettings, MavenRepositoryLayout> =
-        LazyMap { providers[it.options["layout"] ?: "default"]!!.provide(it) }
+        LazyMap { providers[it.options["layout"] ?: DEFAULT_MAVEN_LAYOUT]!!.provide(it) }
 
     public fun createLayout(settings: RepositorySettings): MavenRepositoryLayout = layouts[settings]!!
 

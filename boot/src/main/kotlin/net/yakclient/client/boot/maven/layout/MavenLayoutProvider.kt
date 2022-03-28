@@ -1,4 +1,4 @@
-package net.yakclient.client.boot.maven
+package net.yakclient.client.boot.maven.layout
 
 import net.yakclient.client.boot.repository.RepositorySettings
 

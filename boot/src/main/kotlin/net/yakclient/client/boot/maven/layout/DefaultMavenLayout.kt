@@ -1,5 +1,7 @@
-package net.yakclient.client.boot.maven
+package net.yakclient.client.boot.maven.layout
 
+import net.yakclient.client.boot.maven.layout
+import net.yakclient.client.boot.maven.url
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.*
 import net.yakclient.client.util.resource.SafeResource
@@ -34,9 +36,8 @@ public open class DefaultMavenLayout(override val settings: RepositorySettings) 
             ?.toResource(va.uriAt("$s.jar.sha1").readHexToBytes())
     }
 
-    private fun baseArtifact(g: String, a: String): URL =
+    protected fun baseArtifact(g: String, a: String): URL =
         URL(url).urlAt(g.replace('.', '/'), a)
 
-    private fun versionedArtifact(g: String, a: String, v: String): URL = baseArtifact(g, a).urlAt(v)
-
+    protected fun versionedArtifact(g: String, a: String, v: String): URL = baseArtifact(g, a).urlAt(v)
 }

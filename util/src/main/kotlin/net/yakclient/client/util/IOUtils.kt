@@ -1,14 +1,12 @@
 package net.yakclient.client.util
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import net.yakclient.client.util.resource.ExternalResource
 import net.yakclient.client.util.resource.LocalResource
 import net.yakclient.client.util.resource.SafeResource
-import java.io.ByteArrayOutputStream
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.InputStream
+import org.apache.http.client.methods.RequestBuilder
+import org.apache.http.impl.client.CloseableHttpClient
+import org.apache.http.impl.client.HttpClients
+import java.io.*
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
@@ -16,24 +14,19 @@ import java.nio.channels.Channels
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
-import kotlin.collections.ArrayList
 
 public fun InputStream.readInputStream(): ByteArray = ByteArrayOutputStream().use { outputStream ->
-    val size = available()
+    val buffer = ByteArrayOutputStream()
 
-    val data = ByteArray(size)
-    var bytesRead: Int
-    var readCount = 0
-    while (read(data, 0, size).also { bytesRead = it } != -1) {
-        outputStream.write(data, 0, bytesRead)
-        readCount++
+    var nRead: Int
+    val data = ByteArray(4)
+
+    while (read(data, 0, data.size).also { nRead = it } != -1) {
+        buffer.write(data, 0, nRead)
     }
 
-    outputStream.flush()
-
-    if (readCount == 1) {
-        data
-    } else outputStream.toByteArray()
+    buffer.flush()
+    buffer.toByteArray()
 }
 
 public fun URI.openStream(): InputStream = toURL().openStream()
@@ -53,21 +46,6 @@ public fun Path.make(): Boolean =
         parent.toFile().mkdirs()
         toFile().createNewFile()
     }
-
-public suspend infix fun URI.downloadTo(loc: Path): Path = runCatching {
-    // TODO add some sort of assertion for making sure the file gets full downloaded(that's an issue that happens every once in a while and it totally breaks everything)
-
-    Channels.newChannel(openStream()).use { cin ->
-        withContext(Dispatchers.IO) {
-            loc.make()
-            FileOutputStream(loc.toFile()).use { fout ->
-                fout.channel.transferFrom(cin, 0, Long.MAX_VALUE)
-            }
-        }
-
-        return loc
-    }
-}.getOrNull() ?: throw IllegalStateException("Failed to download resource from location: ${toString()}")
 
 public val URL.baseURL: String
     get() = this.protocol + ':' +
@@ -94,15 +72,34 @@ private fun deleteAllInternal(path: Path): Boolean {
 
 public fun Path.deleteAll(): Boolean = deleteAllInternal(this)
 
-public fun URI.toResource(checkSum: ByteArray): SafeResource = ExternalResource(this, checkSum)
+public fun URI.toResource(checkSum: ByteArray, checkType: String = "SHA1"): SafeResource =
+    ExternalResource(this, checkSum, checkType)
 
-public fun URI.readBytes() : ByteArray = toURL().readBytes()
+public fun URI.open(): InputStream {
+    val client =HttpClients.custom().build()
+    val reqIn = client.execute(RequestBuilder.get().setUri(this).build()).entity.content
 
-public fun URI.readHexToBytes() : ByteArray = HexFormat.of().parseHex(String(readBytes()))
+    return WrappedClientStream(reqIn, client)
+}
 
-public fun Path.toResource() : SafeResource = LocalResource(this)
+private class WrappedClientStream(
+    delegate: InputStream,
+    private val client: CloseableHttpClient
+) : FilterInputStream(delegate) {
+    override fun close() {
+        client.close()
+        super.close()
+    }
+}
 
-public infix fun SafeResource.copyTo(to: Path) : Path {
+
+public fun URI.readBytes(): ByteArray = open().readInputStream()
+
+public fun URI.readHexToBytes(): ByteArray = HexFormat.of().parseHex(String(readBytes()).trim())
+
+public fun Path.toResource(): SafeResource = LocalResource(this)
+
+public infix fun SafeResource.copyTo(to: Path): Path {
     Channels.newChannel(open()).use { cin ->
         to.make()
         FileOutputStream(to.toFile()).use { fout ->

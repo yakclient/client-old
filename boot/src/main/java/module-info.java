@@ -4,8 +4,7 @@ import net.yakclient.client.boot.internal.jpm.JpmFinder;
 import net.yakclient.client.boot.internal.jpm.JpmResolver;
 import net.yakclient.client.boot.archive.ArchiveFinder;
 import net.yakclient.client.boot.archive.ArchiveResolver;
-import net.yakclient.client.boot.maven.MavenLayoutProvider;
-import net.yakclient.client.boot.maven.MavenRepositoryLayout;
+import net.yakclient.client.boot.maven.layout.MavenLayoutProvider;
 import net.yakclient.client.boot.repository.RepositoryProvider;
 
 module yakclient.client.boot {
@@ -36,6 +35,7 @@ module yakclient.client.boot {
     exports net.yakclient.client.boot.repository;
     exports net.yakclient.client.boot.archive;
     exports net.yakclient.client.boot.loader;
+    exports net.yakclient.client.boot.maven.layout;
 
     exports net.yakclient.client.boot.internal to java.base; // Service loading
     exports net.yakclient.client.boot.maven;

@@ -5,10 +5,12 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import net.yakclient.client.boot.dependency.Dependency
+import net.yakclient.client.boot.maven.layout.InvalidMavenLayoutException
+import net.yakclient.client.boot.maven.layout.MavenRepositoryLayout
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
+import net.yakclient.client.util.filterDuplicates
 import net.yakclient.client.util.runCatching
-import java.net.URL
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -42,8 +44,7 @@ internal open class MavenRepositoryHandler(
 
         val (group, artifact, version) = listOf(desc.group, desc.artifact, desc.version!!)
 
-        val pom =
-            loadMavenPom(runCatching(InvalidMavenLayoutException::class) { layout.pomOf(group, artifact, version) }
+        val pom = layout.loadMavenPom(runCatching(InvalidMavenLayoutException::class) { layout.pomOf(group, artifact, version) }
                 ?: return null)
 
         fun getConst(name: String): String? =
@@ -75,9 +76,7 @@ internal open class MavenRepositoryHandler(
             )
         }
 
-        val contains = HashSet<RepositorySettings>()
-
-        val repositories = pom.repositories.filter(contains::add)
+        val repositories = pom.repositories.filterDuplicates()
 
         return Dependency(
             layout.jarOf(group, artifact, version),

@@ -161,6 +161,7 @@ public fun init(yakDir: Path) {
     populator.load("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.3")
     populator.load("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.3")
     populator.load("org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0")
+    populator.load("org.apache.httpcomponents:httpclient:4.5.13")
 
 //    val loaded = HashMap<String, DependencyNode>()
 
