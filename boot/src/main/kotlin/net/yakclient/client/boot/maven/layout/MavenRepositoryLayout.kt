@@ -28,7 +28,8 @@ public interface MavenRepositoryLayout {
      *
      * @return The SafeResource containing the jar.
      */
-    public fun jarOf(g: String, a: String, v: String): SafeResource?
+    // TODO Solution for different packaging types like war and ear
+    public fun archiveOf(g: String, a: String, v: String): SafeResource
 
     /**
      * Loads the artifact meta of the given groupId and artifact. In most

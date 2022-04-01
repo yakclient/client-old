@@ -1,14 +1,13 @@
 package net.yakclient.client.util.test.resource
 
+import kotlinx.coroutines.runBlocking
 import net.yakclient.client.util.*
 import net.yakclient.client.util.resource.ExternalResource
-import org.apache.http.HttpHeaders.CONTENT_TYPE
+import net.yakclient.client.util.resource.SafeResource
 import org.apache.http.client.methods.RequestBuilder
 import org.apache.http.impl.client.HttpClients
 import java.io.InputStream
 import java.net.URI
-import java.net.URL
-import java.net.http.HttpHeaders
 import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.util.*
@@ -61,7 +60,7 @@ class ExternalResourceTests {
         val url =
             "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-cli-jvm/0.3.4/kotlinx-cli-jvm-0.3.4.pom"
         val resource = URI.create(url).toResource(
-            URI.create("$url.sha1").readHexToBytes()
+            URI.create("$url.sha1").readAsSha1()
         )
         println(resource.open().use { it.available() })
     }
@@ -73,9 +72,8 @@ class ExternalResourceTests {
         val url =
             "https://oss.sonatype.org/service/local/repositories/google-snapshots/content/com/google/http-client/google-http-client/maven-metadata.xml"
         val resource = URI.create(url).toResource(
-            URI.create("$url.sha1").readHexToBytes(), "SHA1"
+            URI.create("$url.sha1").readAsSha1(), "SHA1"
         )
         println(resource.open().use { it.available() })
     }
-
 }

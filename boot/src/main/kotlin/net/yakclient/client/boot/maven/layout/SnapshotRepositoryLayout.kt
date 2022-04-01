@@ -38,33 +38,28 @@ public open class SnapshotRepositoryLayout(settings: RepositorySettings) : Defau
         val pomVersion = snapshots["pom"]
             ?: throw IllegalStateException("Failed to find pom snapshot version for artifact: '$g-$a-$v'")
 
-        // TODO Find a way to put this into some function call so there are no duplicates
         val s = "${a}-${pomVersion}"
-        val va = versionedArtifact(g, a, v)
-        return va.uriAt("$s.pom").takeIf { it.toURL().isReachable() }
-            ?.toResource(va.uriAt("$s.pom.sha1").readHexToBytes()) ?: throw InvalidMavenLayoutException(
+        return versionedArtifact(g, a, v).resourceAt("$s.pom") ?: throw InvalidMavenLayoutException(
             "$s.pom",
             settings.layout
         )
     }
 
-    override fun jarOf(g: String, a: String, v: String): SafeResource? {
+    override fun archiveOf(g: String, a: String, v: String): SafeResource {
         val snapshots = latestClassifierVersions(versionMetaOf(g, a, v))
         val jarVersion = snapshots["jar"]
             ?: throw IllegalStateException("Failed to find jar snapshot version for artifact: '$g-$a-$v'")
 
-        val s = "${a}-${jarVersion}"
-        val va = versionedArtifact(g, a, v)
-        return va.uriAt("$s.jar").takeIf { it.toURL().isReachable() }
-            ?.toResource(va.uriAt("$s.jar.sha1").readHexToBytes())
+        return versionedArtifact(g, a, v).resourceAt("${a}-${jarVersion}.jar")
+            ?: throw InvalidMavenLayoutException("${a}-${jarVersion}.jar", settings.layout)
     }
 
     protected fun versionMetaOf(g: String, a: String, v: String): SafeResource {
-        val va = versionedArtifact(g, a, v)
         return runCatching(DownloadFailedException::class) {
-            val xmlChecksum = va.uriAt("maven-metadata.xml.sha1")
-            if (!xmlChecksum.toURL().isReachable()) throw InvalidMavenLayoutException("Failed to find maven-metadata.xml checksum(for version: $v) in current snapshot repository.", settings.layout)
-            va.uriAt("maven-metadata.xml").toResource(xmlChecksum.readHexToBytes())
+            versionedArtifact(g, a, v).resourceAt("maven-metadata.xml") ?: throw InvalidMavenLayoutException(
+                "Failed to find maven metadata for artifact: '$g-$a-$a'",
+                settings.layout
+            )
         } ?: throw InvalidMavenLayoutException("maven-metadata.xml", settings.layout)
     }
 }

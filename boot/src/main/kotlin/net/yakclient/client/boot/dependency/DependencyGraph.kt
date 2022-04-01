@@ -1,5 +1,6 @@
 package net.yakclient.client.boot.dependency
 
+import kotlinx.coroutines.*
 import net.yakclient.client.boot.exception.CyclicDependenciesException
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
@@ -22,69 +23,96 @@ public object DependencyGraph {
     public fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>): DependencyLoader<T> =
         DependencyLoader(handler)
 
-    public class DependencyLoader<T : Dependency.Descriptor> internal constructor(
-        private val repo: RepositoryHandler<T>,
+    public class DependencyLoader<D : Dependency.Descriptor> internal constructor(
+        private val repo: RepositoryHandler<D>,
         private val resolver: DependencyResolver = BasicDepResolver()
     ) {
         public fun load(name: String): ResolvedArchive? {
-            return load(repo.loadDescription(name) ?: return null)?.reference
+            return load(repo.loadDescription(name) ?: return null)
         }
 
-        private fun load(desc: T): DependencyNode? {
-            return if (cacheInternal(desc, null)) loadCached(DependencyCache.getOrNull(desc) ?: return null)
-            else null
+        private fun load(desc: D): ResolvedArchive? {
+            val cacheInternal = runBlocking { cacheInternal(desc) }
+
+            return if (cacheInternal) loadCached(DependencyCache.getOrNull(desc) ?: return null).reference else {
+                logger.log(Level.WARNING, "Failed to load dependency : '${desc.toPrettyString()}'")
+                null
+            }
         }
 
-        private fun cacheInternal(desc: T, trace: DependencyTrace?): Boolean {
+        private suspend fun cacheInternal(desc: D): Boolean = cacheInternal(desc, null)
 
+        private suspend fun cacheInternal(desc: D, trace: DependencyTrace?): Boolean {
             if (trace?.isCyclic(desc) == true) throw CyclicDependenciesException(trace.topDependency() ?: desc)
 
             val resolved = CachedDependency.Descriptor(desc.artifact, desc.version)
 
-            if (!graph.contains(resolved)) {
-                if (DependencyCache.contains(resolved)) return true
-
+            return if (!graph.contains(resolved) && !DependencyCache.contains(resolved)) {
                 val dependency = repo.find(desc) ?: return false
 
-                dependency.dependants.forEach { d ->
-                    assert(d.possibleRepos.isNotEmpty()) { "Dependency: ${d.desc.artifact} has no associated repositories! (Issue in the repository handler: ${repo::class.java})" }
-                    d.possibleRepos.firstNotNullOfOrNull { r ->
-                        val handler = RepositoryFactory.create(r) as RepositoryHandler<Dependency.Descriptor>
-                        val loader = DependencyLoader(handler, resolver)
+                coroutineScope {
+                    val jobs = dependency.dependants.map { d ->
+                        assert(d.possibleRepos.isNotEmpty()) { "Dependency: ${d.desc.toPrettyString()} has no associated repositories! (Issue in the repository handler: ${repo::class.java.name})" }
 
-                        loader.cacheInternal(d.desc, DependencyTrace(trace, dependency.desc))
-                    } ?: run {
+                        async {
+                            d.possibleRepos.any { r ->
+                                val handler = RepositoryFactory.create(r) as RepositoryHandler<Dependency.Descriptor>
+                                val loader = DependencyLoader(handler, resolver)
+
+                                loader.cacheInternal(d.desc, DependencyTrace(trace, dependency.desc))
+                            } to d.desc
+                        }
+                    }
+
+                    val failed = jobs
+                        .map { it.await() }
+                        .filterNot { r -> r.first }
+                        .map { it.second }
+
+                    if (failed.isNotEmpty()) {
                         logger.log(
-                            Level.SEVERE,
-                            "Failed to find dependency: $d in trace: ${trace.toPrettyString(d, dependency)}"
+                            Level.WARNING,
+                            "Failed loading dependencies : ${
+                                failed.joinToString(transform = Dependency.Descriptor::toPrettyString)
+                            }, Dependency trace was: ${trace.toPrettyString(dependency)}. "
                         )
 
-                        return false
+                        false
+                    } else {
+                        DependencyCache.cache(dependency)
+                        true
                     }
                 }
-
-                DependencyCache.cache(dependency)
-                return true
-            } else return true
+            } else true
         }
-
 
         private fun loadCached(cached: CachedDependency): DependencyNode {
             val desc = cached.desc
-            logger.log(Level.INFO, "Loading dependency: ${desc.artifact}-${desc.version}")
+            logger.log(Level.INFO, "Loading dependency: '${desc.toPrettyString()}'")
+
+            if (graph.contains(desc)) return graph[desc]!!
 
             val cachedDeps: List<CachedDependency> = cached.dependants
                 .map { DependencyCache.getOrNull(it) }
                 .takeUnless { it.any { d -> d == null } }
-                ?.filterNotNull() ?: throw IllegalStateException("Cached dependency: '$desc' ")
+                ?.filterNotNull()
+                ?: throw IllegalStateException("Cached dependency: '${desc.toPrettyString()}' should already have all dependencies cached!")
 
-            val children: Set<DependencyNode> = cachedDeps.mapTo(HashSet()) { graph[it.desc] ?: loadCached(it) }
+            val children: Set<DependencyNode> = cachedDeps.mapTo(HashSet()) { loadCached(it) }
 
             val dependencies: List<DependencyNode> =
                 children.filterNot { c -> children.any { it.provides(c.desc) } }
 
-            val reference: ResolvedArchive? =
-                if (cached.path != null) loadReference(cached.path, dependencies) else null
+            val reference: ResolvedArchive? = if (cached.path != null) {
+                val reference = runCatching { loadReference(cached.path, dependencies) }
+
+                if (reference.isFailure) logger.log(
+                    Level.SEVERE,
+                    "Failed to resolve dependency in trace : '${desc.toPrettyString()}'. Fatal error."
+                )
+
+                reference.getOrThrow()
+            } else null
 
             return DependencyNode(desc, reference, children).also {
                 graph[it.desc] = it
@@ -103,8 +131,6 @@ public object DependencyGraph {
             it.referenceOrChildren()
         })
     }
-
-
 }
 
 internal class DependencyNode(
@@ -122,13 +148,11 @@ private fun DependencyTrace.topDependency(): Dependency.Descriptor? =
     if (this.parent != null) parent.topDependency() else this.desc
 
 private fun DependencyTrace?.toPrettyString(
-    d: Dependency.Transitive,
     dependency: Dependency
 ) = this?.flatten()?.asReversed()
     ?.joinToString(
         separator = " -> ",
-        postfix = " -> $d"
-    ) ?: "${dependency.desc.artifact} -> $d"
+    ) ?: dependency.desc.artifact
 
 internal data class DependencyTrace(
     val parent: DependencyTrace?,

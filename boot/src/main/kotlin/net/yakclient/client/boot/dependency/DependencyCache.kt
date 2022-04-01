@@ -1,7 +1,6 @@
 package net.yakclient.client.boot.dependency
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import net.yakclient.client.boot.YakClient
@@ -13,8 +12,6 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 internal object DependencyCache {
-    private const val META_ROOT_NAME = "dependency-meta"
-
     private val cachePath = YakClient.settings.dependencyCacheLocation.toPath()
     private val cacheMeta = cachePath.resolve("dependencies-meta.json")
 
@@ -27,18 +24,15 @@ internal object DependencyCache {
         val metaFile = cacheMeta.toFile()
 
         if (cacheMeta.make()) metaFile.writeText(mapper.writeValueAsString(setOf<CachedDependency>()))
-//        if (cacheMeta.make()) setOf<CachedDependency>().toConfig(META_ROOT_NAME).writeTo(metaFile)
 
         all = mapper.readValue<Set<CachedDependency>>(metaFile).associateByTo(ConcurrentHashMap()) { it.desc }
-//        all = ConfigFactory.parseFile(metaFile).extract<Set<CachedDependency>>(META_ROOT_NAME)
-//            .associateByTo(ConcurrentHashMap()) { it.desc }
     }
 
     fun getOrNull(d: Dependency.Descriptor) : CachedDependency? = all[CachedDependency.Descriptor(d.artifact, d.version)]
 
     fun contains(d: Dependency.Descriptor) : Boolean = all.contains(CachedDependency.Descriptor(d.artifact, d.version))
 
-    fun cache(dependency: Dependency): CachedDependency {
+    suspend fun cache(dependency: Dependency): CachedDependency {
         val desc = dependency.desc
 
         // Check if we need to cache the jar
@@ -86,22 +80,3 @@ internal object DependencyCache {
         return cachedDependency
     }
 }
-
-//internal class CachedRepositoryHandler : RepositoryHandler<CachedDependency.Descriptor> {
-//    private val meta: Map<String, CachedDependency>
-//    override val settings: RepositorySettings
-//        get() = throw UnsupportedOperationException("Settings not supported in this context")
-//
-//    init {
-//        val metaFile = cacheMeta.toFile()
-//
-//        if (cacheMeta.createFile()) mapOf<String, CachedDependency>().toConfig(META_ROOT_NAME).writeTo(metaFile)
-//
-//        meta = ConfigFactory.parseFile(metaFile).extract(META_ROOT_NAME)
-//    }
-//
-//    override fun find(desc: CachedDependency.Descriptor): Dependency? = meta[desc.artifact]?.let { Dependency(it.path.toUri(), it.dependants, it.desc) }
-//
-//    override fun loadDescription(dep: String): CachedDependency.Descriptor? =
-//        meta[dep]?.desc as? CachedDependency.Descriptor
-//}

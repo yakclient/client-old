@@ -1,8 +1,9 @@
 package net.yakclient.client.boot.test.dep
 
+import net.yakclient.client.boot.InitScope
 import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.init
-import net.yakclient.client.boot.maven.MAVEN_CENTRAL
+import net.yakclient.client.boot.maven.*
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.child
 import net.yakclient.client.util.parent
@@ -35,10 +36,27 @@ class TestDependencyGraph {
             ModuleFinder.of(),
             finder.findAll().map(ModuleReference::descriptor).map(ModuleDescriptor::name)
         )
-        val modules = listOf(1, 2).map { parentLayer.defineModulesWithOneLoader(config, ClassLoader.getSystemClassLoader()) }.map { it.modules().first() }
+        val modules =
+            listOf(1, 2).map { parentLayer.defineModulesWithOneLoader(config, ClassLoader.getSystemClassLoader()) }
+                .map { it.modules().first() }
         println(modules)
     }
 
+    @Test
+    fun `Load dependency from graph`() {
+        init(workingDir().parent("client").child("workingDir").toPath(), InitScope.DEVELOPMENT)
+
+        val ref = DependencyGraph.ofRepository(
+            RepositorySettings(
+                MAVEN, options = mapOf(
+                    LAYOUT_OPTION_NAME to SNAPSHOT_MAVEN_LAYOUT,
+                    URL_OPTION_NAME to "https://repo.heartpattern.io/repository/maven-public/"
+                )
+            )
+        ).load("io.heartpattern:mcremapper:2.0.6-SNAPSHOT")
+
+        println(ref)
+    }
 
 }
 

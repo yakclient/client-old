@@ -39,15 +39,14 @@ class MavenRepoTests {
                 MAVEN,
                 options = mapOf(
                     LAYOUT_OPTION_NAME to SNAPSHOT_MAVEN_LAYOUT,
-                    URL_OPTION_NAME to "https://oss.sonatype.org/service/local/repositories/google-snapshots/content"
+                    URL_OPTION_NAME to "https://oss.sonatype.org/content/repositories/snapshots/"
                 )
             )
         ) as RepositoryHandler<Dependency.Descriptor>
         val dep =
-            handler.find(checkNotNull(handler.loadDescription("com.google.http-client:google-http-client:1.5.2-beta-SNAPSHOT")) { "Failed to find dependency" })
+            handler.find(checkNotNull(handler.loadDescription("actor.proto:proto-actor:0.8-SNAPSHOT")) { "Failed to find dependency" })
 
         println(dep?.jar)
         println(dep?.dependants)
     }
-
 }

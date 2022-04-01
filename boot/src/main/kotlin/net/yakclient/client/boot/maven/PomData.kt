@@ -27,7 +27,8 @@ internal data class PomData(
     val properties: Map<String, String> = mapOf(),
     val parent: PomParent?,
     val dependencies: Set<MavenDependency> = setOf(),
-    val repositories: Set<PomRepository>?
+    val repositories: Set<PomRepository> = setOf(),
+    val packaging: String = "jar"
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

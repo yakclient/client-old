@@ -15,8 +15,9 @@ internal class InternalLayoutProvider : MavenLayoutProvider {
         DEFAULT_MAVEN_LAYOUT -> DefaultMavenLayout(settings)
         "local" -> LocalMavenLayout
         SNAPSHOT_MAVEN_LAYOUT -> SnapshotRepositoryLayout(settings)
+        "legacy" -> DefaultMavenLayout(settings) // not correct, but i really dont want to implement legacy atm
         else -> throw IllegalArgumentException("Invalid layout passed: ${settings.layout}")
     }
 
-    override fun provides(layout: String): Boolean = layout.equalsAny(DEFAULT_MAVEN_LAYOUT, "local", SNAPSHOT_MAVEN_LAYOUT)
+    override fun provides(layout: String): Boolean = layout.equalsAny(DEFAULT_MAVEN_LAYOUT, "local", SNAPSHOT_MAVEN_LAYOUT, "legacy")
 }

@@ -28,36 +28,11 @@ internal object LocalMavenLayout : MavenRepositoryLayout {
         versionedArtifact(g, a, v).resolve("${a}-${v}.pom").takeIf(Files::exists)?.toResource()
             ?: throw InvalidMavenLayoutException("${a}-${v}.pom", "local")
 
-    override fun jarOf(g: String, a: String, v: String): SafeResource? =
-        versionedArtifact(g, a, v).resolve("${a}-${v}.jar").takeIf(Files::exists)?.toResource()
+    override fun archiveOf(g: String, a: String, v: String): SafeResource =
+        versionedArtifact(g, a, v).resolve("${a}-${v}.jar").takeIf(Files::exists)?.toResource() ?: throw InvalidMavenLayoutException("${a}-${v}.jar", "local")
 }
 
 private fun baseArtifact(group: String, artifact: String): Path =
     LOCAL.resolve(group.replace('.', '/')).resolve(artifact)
 
 private fun versionedArtifact(g: String, a: String, v: String): Path = baseArtifact(g, a).resolve(v)
-
-//private val LOCAL = Path.of(System.getProperty("user.home")).resolve(".m2").resolve("repository")
-//
-//internal object MavenLocalSchema : MavenSchema {
-//    override val handler: SchemaHandler<MavenArtifactContext> = SchemaHandler()
-//    init {
-//        handler.registerValidator<MavenArtifactContext> {
-//            Files.exists(it.baseArtifact)
-//        }
-//        handler.registerValidator<MavenVersionContext> {
-//            Files.exists(it.versionedArtifact)
-//        }
-//    }
-//
-//    override val meta = handler.register(MavenArtifactContext::class) {
-//        val b = it.baseArtifact
-//        b.resolve("maven-metadata-local.xml").toResource()
-//    }
-//    override val jar : SchemaMeta<MavenVersionContext, SafeResource?> = handler.register(MavenVersionContext::class) {
-//        it.versionedArtifact.resolve("${it.artifact}-${it.version}.jar").toResource()
-//    }
-//    override val pom = handler.register(MavenVersionContext::class) {
-//        it.versionedArtifact.resolve("${it.artifact}-${it.version}.pom").toResource()
-//    }
-//}

@@ -3,6 +3,7 @@ package net.yakclient.client.api.internal
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
+import kotlinx.coroutines.runBlocking
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
@@ -13,9 +14,13 @@ import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
 import net.yakclient.client.boot.loader.ClConglomerate
 import net.yakclient.client.util.*
+import net.yakclient.client.util.resource.SafeResource
+import java.nio.file.Path
 import java.util.*
 
 public class ApiInternalExt : Extension() {
+
+    private infix fun SafeResource.copyToBlocking(to: Path): Path = runBlocking { this@copyToBlocking copyTo to }
 
     override fun onLoad() {
         val ext = ArchiveUtils.find(YakClient.settings.mcExtLocation)
@@ -28,7 +33,7 @@ public class ApiInternalExt : Extension() {
         if (minecraftPath.make()) {
             val client = (manifest.downloads[ManifestDownloadType.CLIENT]
                 ?: throw IllegalStateException("Invalid client.json manifest. Must have a client download available!"))
-            client.url.toResource(HexFormat.of().parseHex(client.checksum)).copyTo(minecraftPath)
+            client.url.toResource(HexFormat.of().parseHex(client.checksum)).copyToBlocking(minecraftPath)
         }
 
         // TODO add support for excluding based on the client manifest
@@ -80,7 +85,7 @@ public class ApiInternalExt : Extension() {
         val references = manifest.libraries.map {
             val artifact = it.downloads.artifact
             val path = libPath resolve "${libNameS[it.name]!!}.jar"
-            if (path.make()) artifact.url.toResource(HexFormat.of().parseHex(artifact.checksum)) copyTo path else path
+            if (path.make()) artifact.url.toResource(HexFormat.of().parseHex(artifact.checksum)) copyToBlocking path else path
         }.map(ArchiveUtils::find)// + mcReference
 
 //        references.patch("java.objc.bridge", )

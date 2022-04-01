@@ -44,8 +44,8 @@ internal open class MavenRepositoryHandler(
 
         val (group, artifact, version) = listOf(desc.group, desc.artifact, desc.version!!)
 
-        val pom = layout.loadMavenPom(runCatching(InvalidMavenLayoutException::class) { layout.pomOf(group, artifact, version) }
-                ?: return null)
+        val valueOr = runCatching(InvalidMavenLayoutException::class) { layout.pomOf(group, artifact, version) }
+        val pom = layout.loadMavenPom(valueOr ?: return null)
 
         fun getConst(name: String): String? =
             when (name) {
@@ -58,10 +58,13 @@ internal open class MavenRepositoryHandler(
         fun String.asIfProperty(): String {
             val match = propertyMatcher.matchEntire(this) ?: return this
             val name = match.groupValues[1]
-            return (pom.findProperty(name) ?: getConst(name))?.asIfProperty() ?: throw IllegalArgumentException("Invalid property value: $this")
+            return (pom.findProperty(name) ?: getConst(name))?.asIfProperty()
+                ?: throw IllegalArgumentException("Invalid property value: $this")
         }
 
         val dependencies = pom.dependencies
+
+        val repositories = pom.repositories.toMutableList().apply { add(settings) }.filterDuplicates()
 
         val needed = dependencies.filter {
             when (it.scope) {
@@ -69,17 +72,19 @@ internal open class MavenRepositoryHandler(
                 else -> false
             }
         }.map {
+            val g = it.groupId.asIfProperty()
+            val v = it.artifactId.asIfProperty()
+
             MavenDescriptor(
-                it.groupId.asIfProperty(),
-                it.artifactId.asIfProperty(),
-                it.version?.asIfProperty()
+                g,
+                v,
+                it.version?.asIfProperty() ?: newestVersionOf(g, v)?.version
             )
         }
 
-        val repositories = pom.repositories.filterDuplicates()
 
         return Dependency(
-            layout.jarOf(group, artifact, version),
+            if (pom.packaging != "pom") layout.archiveOf(group, artifact, version) else null,
             needed.mapTo(HashSet()) {
                 Dependency.Transitive(repositories, it)
             },

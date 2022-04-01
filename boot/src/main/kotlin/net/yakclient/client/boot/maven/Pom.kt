@@ -8,6 +8,7 @@ internal interface Pom {
     val properties: Map<String, String>
     val repositories: List<RepositorySettings>
     val dependencies: Set<MavenDependency>
+    val packaging: String
 
     fun findProperty(name: String): String?
 }
@@ -39,7 +40,7 @@ internal data class ChildPom(
             ?: listOf())
     }
     override val dependencies: Set<MavenDependency> by lazy {
-        (parent?.dependencies ?: setOf()) + data.dependencies?.mapTo(HashSet()) { (g, a, v, s) ->
+        (parent?.dependencies ?: setOf()) + data.dependencies.mapTo(HashSet()) { (g, a, v, s) ->
             MavenDependency(
                 g,
                 a,
@@ -48,6 +49,7 @@ internal data class ChildPom(
             )
         }
     }
+    override val packaging: String = data.packaging
 
     override fun findProperty(name: String): String? = properties[name] ?: parent?.findProperty(name)
 }
@@ -59,6 +61,7 @@ internal object TheSuperPom : Pom {
     override val properties: Map<String, String> = mapOf()
     override val repositories: List<RepositorySettings> = listOf(RepositorySettings(MAVEN_CENTRAL))
     override val dependencies: Set<MavenDependency> = setOf()
+    override val packaging: String = "pom"
 
     override fun findProperty(name: String): String? = null
 }

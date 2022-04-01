@@ -37,7 +37,8 @@ public object YakClient : Extension() {
         exitProcess(1)
     }
 
-    internal fun loadResource(name: String) : SafeResource? = YakClient::class.java.getResource(name)?.let { Paths.get(it.toURI()) }?.toResource()
+    internal fun loadResource(name: String): SafeResource? =
+        YakClient::class.java.getResource(name)?.let { Paths.get(it.toURI()) }?.toResource()
 }
 
 private const val SETTINGS_NAME = "settings.conf"
@@ -46,7 +47,6 @@ public fun main(args: Array<String>) {
     val parser = ArgParser("yakclient")
 
     val yakDirectory by parser.option(PathArgument, "yakdirectory", "d").required()
-//    val threadPoolSize by parser.option(ArgType.Int, "poolsize")
 
     parser.parse(args)
 
@@ -58,12 +58,18 @@ public fun main(args: Array<String>) {
 
     if (run.isFailure) {
         YakClient.logger.log(Level.INFO, "Error occurred, Exiting gracefully")
-        run.exceptionOrNull()?.printStackTrace()
+        (run.exceptionOrNull()!!).printStackTrace()
     } else YakClient.logger.log(Level.INFO, "Successfully Quit")
 
 }
 
-public fun init(yakDir: Path) {
+public enum class InitScope {
+    PRODUCTION,
+    DEVELOPMENT,
+    TEST
+}
+
+public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
     if (YakClient.innited) return
     YakClient.innited = true
 
@@ -93,11 +99,7 @@ public fun init(yakDir: Path) {
         null
     )
 
-//    val mvn = RepositoryFactory.create(RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)) as RepositoryHandler<Dependency.Descriptor>
-//
-//    mvn.find(mvn.loadDescription("")!!)
-
-    val populator = DependencyGraph.DependencyLoader(
+    val dl = DependencyGraph.DependencyLoader(
         RepositoryFactory.create(
             RepositorySettings(MAVEN_CENTRAL)
         ),
@@ -111,87 +113,16 @@ public fun init(yakDir: Path) {
             )
         }
     )
-//    val populator = object : DependencyGraph.DependencyLoader<MavenDescriptor>(
-//        RepositoryFactory.create(
-//            RepositorySettings(RepositoryType.MAVEN_CENTRAL, null)
-//        ) as RepositoryHandler<MavenDescriptor>,
-//        object : BasicDepResolver() {
-//            override fun invoke(archive: ArchiveReference, dependants: List<ResolvedArchive>): ResolvedArchive {
-//                return ResolvedJpmArchive(
-//                    ModuleLayer.boot().modules().find {
-//                        val n = archive.name
-//                        it.name == n
-//                    } ?: return super.invoke(archive, dependants),
-//                    archive
-//                )
-//            }
-//        }
-//    ) {
-//        override fun resolve(archive: ArchiveReference, dependants: List<ResolvedArchive>): ResolvedArchive {
-//            return ResolvedJpmArchive(
-//                ModuleLayer.boot().modules().find {
-//                    val n = archive.name
-//                    it.name == n
-////                    it.name == (if (n.startsWith("kotlinx")) "$n.jvm" else n) // Absolutely terrible, but i dont want to find out why kotlinx things randomly have .jvm after them...
-//                } ?: return super.resolve(archive, dependants),
-//                archive
-//            )
-//        }
-//    }
-//    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
-//    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
-//
-//    implementation(kotlin("reflect"))
-//
-//    implementation("io.github.config4k:config4k:0.4.2")
-////    implementation("com.typesafe:config:1.4.1")
-//    implementation(project(":util"))
-//
-//    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.6")
-//    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6")
-    //implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
-    //    implementation("io.github.config4k:config4k:0.4.2")
-    //    implementation("com.typesafe:config:1.4.1")
-    //    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
-    populator.load("org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4")
-    populator.load("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.0")
-    populator.load("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
-    populator.load("io.github.config4k:config4k:0.4.2")
-    populator.load("com.typesafe:config:1.4.1")
-    populator.load("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.3")
-    populator.load("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.3")
-    populator.load("org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0")
-    populator.load("org.apache.httpcomponents:httpclient:4.5.13")
 
-//    val loaded = HashMap<String, DependencyNode>()
-
-//    fun loadDependencies(module: Module): DependencyNode {
-//        val desc = module.descriptor
-//        val dependencies: Set<DependencyNode> = desc.requires()
-//            .asSequence()
-//            .map(ModuleDescriptor.Requires::name)
-//            .map(ModuleLayer.boot()::findModule)
-//            .filter(Optional<Module>::isPresent)
-//            .map(Optional<Module>::get)
-//            .map { m ->
-//                if (loaded.contains(m.name)) loaded[m.name]!!
-//                else loadDependencies(m)
-//            }.toSet()
-//
-//        val dep = DependencyNode(
-//            CachedDependency.Descriptor(desc.name().replace('.', '-'), desc.version().orElse(null)?.toString()),
-//            ResolvedJpm(module),
-//            dependencies
-//        )
-//        loaded[dep.desc.artifact] = dep
-//        return dep
-//    }
-//
-//    val map = ModuleLayer.boot().modules()
-//        .filterNot { it.name.startsWith("java") }
-//        .filterNot { it.name.startsWith("jdk") }
-//        .filterNot { it.name.startsWith("yakclient") }
-//        .map(::loadDependencies)
-//    map.forEach(DependencyGraph::forceAdd)
+    if (scope.equalsAny(InitScope.PRODUCTION, InitScope.DEVELOPMENT)) {
+        dl.load("org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4")
+        dl.load("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+        dl.load("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
+        dl.load("io.github.config4k:config4k:0.4.2")
+        dl.load("com.typesafe:config:1.4.1")
+        dl.load("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.3")
+        dl.load("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.3")
+        dl.load("org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0")
+    }
 }
 
