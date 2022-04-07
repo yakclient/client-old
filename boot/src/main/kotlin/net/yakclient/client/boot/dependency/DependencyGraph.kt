@@ -17,31 +17,34 @@ public object DependencyGraph {
 
     private val graph: MutableMap<Dependency.Descriptor, DependencyNode> = HashMap()
 
-    public fun ofRepository(settings: RepositorySettings): DependencyLoader<*> =
-        ofRepository(RepositoryFactory.create(settings))
+    public fun ofRepository(settings: RepositorySettings, resolver: DependencyResolver = ArchiveResolver()): DependencyLoader<*> =
+        ofRepository(RepositoryFactory.create(settings), resolver)
 
-    public fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>): DependencyLoader<T> =
-        DependencyLoader(handler)
+    public fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>, resolver: DependencyResolver): DependencyLoader<T> =
+        DependencyLoader(handler, resolver)
 
     public class DependencyLoader<D : Dependency.Descriptor> internal constructor(
         private val repo: RepositoryHandler<D>,
-        private val resolver: DependencyResolver = BasicDepResolver()
+        private val resolver: DependencyResolver = ArchiveResolver()
     ) {
-        public fun load(name: String): ResolvedArchive? {
-            return load(repo.loadDescription(name) ?: return null)
+
+        // TODO Replace the list with some sort of deferred archive that delegates to children
+        public infix fun load(name: String): List<ResolvedArchive> {
+            return load(repo.loadDescription(name) ?: return listOf())
         }
 
-        private fun load(desc: D): ResolvedArchive? {
+        private fun load(desc: D): List<ResolvedArchive> {
             val cacheInternal = runBlocking { cacheInternal(desc) }
 
-            return if (cacheInternal) loadCached(DependencyCache.getOrNull(desc) ?: return null).reference else {
+            return if (cacheInternal) loadCached(DependencyCache.getOrNull(desc)!!).referenceOrChildren() else {
                 logger.log(Level.WARNING, "Failed to load dependency : '${desc.toPrettyString()}'")
-                null
+                listOf()
             }
         }
 
         private suspend fun cacheInternal(desc: D): Boolean = cacheInternal(desc, null)
 
+        // TODO add some sort of cache transaction that allows us to rollback any caching if something fails
         private suspend fun cacheInternal(desc: D, trace: DependencyTrace?): Boolean {
             if (trace?.isCyclic(desc) == true) throw CyclicDependenciesException(trace.topDependency() ?: desc)
 
@@ -122,16 +125,14 @@ public object DependencyGraph {
         private fun loadReference(
             path: Path,
             dependencies: List<DependencyNode>
-        ) = resolver(ArchiveUtils.find(path), dependencies.flatMap {
-            fun DependencyNode.referenceOrChildren(): List<ResolvedArchive> =
-                this.reference?.let(::listOf) ?: this.children.flatMap { n ->
-                    n.reference?.let(::listOf) ?: n.referenceOrChildren()
-                }
-
-            it.referenceOrChildren()
-        })
+        ) = resolver(ArchiveUtils.find(path), dependencies.flatMap(DependencyNode::referenceOrChildren))
     }
 }
+
+private fun DependencyNode.referenceOrChildren(): List<ResolvedArchive> =
+    this.reference?.let(::listOf) ?: this.children.flatMap { n ->
+        n.reference?.let(::listOf) ?: n.referenceOrChildren()
+    }
 
 internal class DependencyNode(
     val desc: CachedDependency.Descriptor,

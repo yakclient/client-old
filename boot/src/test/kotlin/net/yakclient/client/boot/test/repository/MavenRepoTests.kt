@@ -25,8 +25,7 @@ class MavenRepoTests {
         val handler =
             RepositoryFactory.create(RepositorySettings(MAVEN_LOCAL)) as RepositoryHandler<Dependency.Descriptor>
 
-        val dep =
-            handler.find(checkNotNull(handler.loadDescription("net.yakclient:bmu-api:1.0-SNAPSHOT")) { "Failed to find dependency" })
+        val dep = handler.find(checkNotNull(handler.loadDescription("net.yakclient:bmu-api:1.0-SNAPSHOT")) { "Failed to find dependency" })
 
         println(dep?.jar)
         println(dep?.dependants)

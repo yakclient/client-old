@@ -7,7 +7,7 @@ public class MinecraftExtension : Extension() {
     override fun onLoad() {
         val module = this::class.java.module
         val minecraft =
-            module.layer.parents().first { it.modules().any { m -> m.name == "yak.minecraft" } }.modules().first()
+            module.layer.parents().first { it.modules().any { m -> m.name == "minecraft" } }.modules().first()
         module.addReads(minecraft)
 
         logger.log(Level.INFO, "Starting minecraft")

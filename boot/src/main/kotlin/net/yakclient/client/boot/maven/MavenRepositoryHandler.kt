@@ -19,48 +19,47 @@ internal open class MavenRepositoryHandler(
     override val settings: RepositorySettings,
 ) : RepositoryHandler<MavenDescriptor> {
     private val logger = Logger.getLogger(this::class.simpleName)
-    private val propertyMatcher = Regex("^\\$\\{(.*)}$")
     private val xml: ObjectMapper = XmlMapper().registerModule(KotlinModule())
 
     override fun find(desc: MavenDescriptor): Dependency? =
         findInternal(desc)
 
-    protected open fun newestVersionOf(group: String, artifact: String): MavenDescriptor? {
-        val meta =
-            runCatching(InvalidMavenLayoutException::class) { layout.artifactMetaOf(group, artifact) } ?: return null
+//    protected open fun newestVersionOf(group: String, artifact: String): MavenDescriptor? {
+//        val meta =
+//            runCatching(InvalidMavenLayoutException::class) { layout.artifactMetaOf(group, artifact) } ?: return null
+//
+//        val tree = xml.readValue<Map<String, Any>>(meta.open())
+//
+//        val version = (tree["version"] as? String)
+//            ?: (tree["versioning"] as Map<String, String>)["release"]
+//            ?: return null
+//
+//        return MavenDescriptor(group, artifact, version)
+//    }
 
-        val tree = xml.readValue<Map<String, Any>>(meta.open())
-
-        val version = (tree["version"] as? String)
-            ?: (tree["versioning"] as Map<String, String>)["release"]
-            ?: return null
-
-        return MavenDescriptor(group, artifact, version)
-    }
-
-    private fun findInternal(_desc: MavenDescriptor): Dependency? {
-        val desc = if (_desc.version == null) newestVersionOf(_desc.group, _desc.artifact) ?: return null else _desc
+    private fun findInternal(desc: MavenDescriptor): Dependency? {
+//        val des c= _desc
+//        val desc = if (_desc.version == null)// newestVersionOf(_desc.group, _desc.artifact) ?: return null else _desc
         logger.log(Level.FINEST, "Loading maven dependency: '$desc'")
 
-        val (group, artifact, version) = listOf(desc.group, desc.artifact, desc.version!!)
+        val (group, artifact, version) = listOf(desc.group, desc.artifact, desc.version)
 
         val valueOr = runCatching(InvalidMavenLayoutException::class) { layout.pomOf(group, artifact, version) }
-        val pom = layout.loadMavenPom(valueOr ?: return null)
+        val pom = layout.parsePom(valueOr ?: return null)
 
-        fun getConst(name: String): String? =
-            when (name) {
-                "project.version" -> pom.desc.version
-                "project.parent.version" -> pom.parent?.desc?.version
-                else -> null
-            }
-
-
-        fun String.asIfProperty(): String {
-            val match = propertyMatcher.matchEntire(this) ?: return this
-            val name = match.groupValues[1]
-            return (pom.findProperty(name) ?: getConst(name))?.asIfProperty()
-                ?: throw IllegalArgumentException("Invalid property value: $this")
-        }
+//        fun getConst(name: String): String? =
+//            when (name) {
+//                "project.version" -> pom.desc.version
+//                "project.parent.version" -> pom.parent?.desc?.version
+//                else -> null
+//            }
+//
+//
+//        fun String.asIfProperty(): String {
+//            val name = matchAsProperty() ?: return this
+//            return (pom.findProperty(name) ?: getConst(name))?.asIfProperty()
+//                ?: throw IllegalArgumentException("Invalid property value: $this")
+//        }
 
         val dependencies = pom.dependencies
 
@@ -72,13 +71,10 @@ internal open class MavenRepositoryHandler(
                 else -> false
             }
         }.map {
-            val g = it.groupId.asIfProperty()
-            val v = it.artifactId.asIfProperty()
-
             MavenDescriptor(
-                g,
-                v,
-                it.version?.asIfProperty() ?: newestVersionOf(g, v)?.version
+                it.groupId,
+                it.artifactId,
+                it.version
             )
         }
 
@@ -93,5 +89,5 @@ internal open class MavenRepositoryHandler(
     }
 
     override fun loadDescription(dep: String): MavenDescriptor? =
-        dep.split(':').takeIf { it.size == 3 || it.size == 2 }?.let { MavenDescriptor(it[0], it[1], it.getOrNull(2)) }
+        dep.split(':').takeIf { it.size == 3 || it.size == 2 }?.let { MavenDescriptor(it[0], it[1], it[2]) }
 }

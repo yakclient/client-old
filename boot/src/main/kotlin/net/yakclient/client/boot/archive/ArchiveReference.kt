@@ -29,6 +29,8 @@ public interface ArchiveReference {
 
         public fun put(name: String, entry: Entry)
 
+        public fun remove(name: String)
+
         private data class ProvidedEntry(
             override val name: String,
             private val _uri: URI?,

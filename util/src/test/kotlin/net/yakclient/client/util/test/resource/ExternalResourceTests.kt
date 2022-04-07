@@ -1,11 +1,7 @@
 package net.yakclient.client.util.test.resource
 
-import kotlinx.coroutines.runBlocking
 import net.yakclient.client.util.*
 import net.yakclient.client.util.resource.ExternalResource
-import net.yakclient.client.util.resource.SafeResource
-import org.apache.http.client.methods.RequestBuilder
-import org.apache.http.impl.client.HttpClients
 import java.io.InputStream
 import java.net.URI
 import java.security.DigestInputStream
@@ -28,18 +24,6 @@ class ExternalResourceTests {
         println(String(second))
         println(String( URI.create("$url.sha1").readBytes()))
     }
-
-    @Test
-    fun `Read the xml file`() {
-        val client = HttpClients.custom().build()
-        val req = RequestBuilder.get()
-            .setUri("https://oss.sonatype.org/service/local/repositories/google-snapshots/content/com/google/http-client/google-http-client/1.5.2-beta-SNAPSHOT/maven-metadata.xml")
-//            .setHeader(CONTENT_TYPE, "application/json")
-            .build()
-
-        println(String(client.execute(req).entity.content.readAllBytes()))
-    }
-
 
     @Test
     fun testResource() {

@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.6.0"
+    kotlin("jvm") version "1.6.10"
     id("org.javamodularity.moduleplugin") version "1.8.10"
 }
 
@@ -43,7 +43,7 @@ subprojects {
 
     dependencies {
         implementation(kotlin("stdlib"))
-        testImplementation("org.jetbrains.kotlin:kotlin-test:1.6.0")
+        testImplementation(kotlin("test"))
     }
 
     kotlin {

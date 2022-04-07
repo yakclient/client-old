@@ -1,10 +1,7 @@
 package net.yakclient.client.util.resource
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import net.yakclient.client.util.openStream
 import net.yakclient.client.util.readInputStream
-import org.apache.http.client.methods.RequestBuilder
-import org.apache.http.impl.client.HttpClients
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.net.URI
@@ -72,17 +69,12 @@ public class ExternalResource(
 
         val digest = MessageDigest.getInstance(checkType)
 
-        return HttpClients.custom().build().use { client ->
-            ByteArrayInputStream(doUntil(NUM_ATTEMPTS) { attempt ->
+        return ByteArrayInputStream(doUntil(NUM_ATTEMPTS) { attempt ->
                 logger.log(Level.FINE, "Loading resource: $uri into memory for checksum processing")
 
                 digest.reset()
 
-                val req = RequestBuilder.get()
-                    .setUri(uri)
-                    .build()
-
-                val b = DigestInputStream(client.execute(req).entity.content, digest).use(InputStream::readInputStream)
+                val b = DigestInputStream(uri.openStream(), digest).use(InputStream::readInputStream)
 
                 if (digest.digest().contentEquals(check)) b
                 else {
@@ -95,7 +87,6 @@ public class ExternalResource(
                 }
             } ?: throw DownloadFailedException(uri))
         }
-    }
 
     override fun open(): InputStream = openInternal()
 }

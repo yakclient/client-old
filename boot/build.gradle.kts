@@ -12,6 +12,7 @@ dependencies {
 //    implementation("net.yakclient:bmu-mixin:1.0-SNAPSHOT")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+//    implementation("io.ktor:ktor-client-cio:2.0.0-beta-1")
 
     implementation(kotlin("reflect"))
 
@@ -30,17 +31,13 @@ application {
     applicationDefaultJvmArgs = listOf(
         "--add-reads", "kotlin.stdlib=kotlinx.coroutines.core.jvm",
         "--add-exports", "kotlin.reflect/kotlin.reflect.jvm.internal=com.fasterxml.jackson.kotlin",
+        "-Xms512m", "-Xmx1G"
 //        "-Djava.library.path=${property("native.path")}",
 //        "--add-opens", "java.base/java.lang=yak.minecraft"
     )
 }
 
-
-tasks.run {
-//    this.run
+modularity {
+    this.patchModule("ktor.client.core.jvm", "ktor-client-core-jvm-2.0.0-beta-1.jar")
+    this.patchModule("ktor.client.core.jvm", "ktor-client-cio-jvm-2.0.0-beta-1.jar")
 }
-
-//tasks.test {
-//
-//}
-

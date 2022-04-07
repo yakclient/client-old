@@ -1,9 +1,11 @@
 package net.yakclient.client.boot.extension
 
 import io.github.config4k.extract
+import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
+import net.yakclient.client.boot.dependency.ArchiveResolver
 import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveLoader
@@ -17,11 +19,10 @@ public object ExtensionLoader {
 
     @JvmStatic
     public fun loadDependencies(settings: ExtensionSettings): List<ResolvedArchive> {
-        val repositories = settings.repositories?.map(DependencyGraph::ofRepository) ?: listOf()
+        val repositories = settings.repositories?.map {DependencyGraph.ofRepository(it, YakClient.dependencyResolver)} ?: listOf()
 
-
-        return settings.dependencies?.map { d ->
-            repositories.firstNotNullOfOrNull { r -> r.load(d) }
+        return settings.dependencies?.flatMap { d ->
+            repositories.firstNotNullOfOrNull { r -> r.load(d).takeIf(Collection<*>::isNotEmpty) }
                 ?: throw IllegalArgumentException("Extension '${settings.name}' has a required dependency of '$d' which cannot be found in the specified repositories: '${
                     settings.repositories?.joinToString(prefix = "[", postfix = "]") {
                         "{type=${it.type}, options: ${

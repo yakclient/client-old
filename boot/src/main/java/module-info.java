@@ -26,6 +26,8 @@ module yakclient.client.boot {
     requires java.instrument;
     requires jdk.attach;
     requires java.sql;
+//    requires ktor.client.core.jvm;
+//    requires ktor.client.cio.jvm;
 
     exports net.yakclient.client.boot;
     exports net.yakclient.client.boot.extension;

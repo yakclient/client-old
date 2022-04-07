@@ -5,11 +5,14 @@ import io.github.config4k.extract
 import io.github.config4k.registerCustomType
 import kotlinx.cli.ArgParser
 import kotlinx.cli.required
+import net.yakclient.client.boot.YakClient.dependencyResolver
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
-import net.yakclient.client.boot.dependency.BasicDepResolver
+import net.yakclient.client.boot.archive.ResolvedArchive
+import net.yakclient.client.boot.dependency.ArchiveResolver
 import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.dependency.DependencyResolutionFallBack
+import net.yakclient.client.boot.dependency.DependencyResolver
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.internal.jpm.ResolvedJpmArchive
@@ -29,6 +32,19 @@ public object YakClient : Extension() {
     internal var innited: Boolean = false
     public var settings: BootSettings by immutableLateInit()
     public var yakDir: Path by immutableLateInit()
+    public val dependencyResolver: DependencyResolver = object : DependencyResolutionFallBack(ArchiveResolver()) {
+        override fun resolve(ref: ArchiveReference, dependants: List<ResolvedArchive>): ResolvedArchive? {
+            fun moduleByName(name: String) : ResolvedArchive? = ModuleLayer.boot().modules().find {
+                it.name == name
+            }?.let { ResolvedJpmArchive(it, ref) }
+
+            return when (ref.name) {
+                "javaee.api" -> moduleByName("java.xml")
+                else -> moduleByName(ref.name)
+            }
+        }
+    }
+
 
     public fun exit(e: Exception, extra: String = "A critical error has occurred"): Nothing {
         logger.log(Level.SEVERE, extra)
@@ -103,26 +119,31 @@ public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
         RepositoryFactory.create(
             RepositorySettings(MAVEN_CENTRAL)
         ),
-        DependencyResolutionFallBack(BasicDepResolver()) { archive, _ ->
-            ResolvedJpmArchive(
-                ModuleLayer.boot().modules().find {
-                    val n = archive.name
-                    it.name == n
-                } ?: return@DependencyResolutionFallBack null,
-                archive
-            )
-        }
+        dependencyResolver
     )
 
     if (scope.equalsAny(InitScope.PRODUCTION, InitScope.DEVELOPMENT)) {
-        dl.load("org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4")
-        dl.load("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
-        dl.load("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
-        dl.load("io.github.config4k:config4k:0.4.2")
-        dl.load("com.typesafe:config:1.4.1")
-        dl.load("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.3")
-        dl.load("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.3")
-        dl.load("org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0")
+        dl load "org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4"
+        dl load "org.jetbrains.kotlinx:kotlinx-coroutines-core:2.0.0-beta-1"
+        dl load "org.jetbrains.kotlin:kotlin-reflect:1.6.0"
+        dl load "io.github.config4k:config4k:0.4.2"
+        dl load "com.typesafe:config:1.4.1"
+        dl load "com.fasterxml.jackson.module:jackson-module-kotlin:2.12.3"
+        dl load "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.3"
+        dl load "org.jetbrains.kotlin:kotlin-stdlib-common:2.0.0-beta-1"
+//        dl load "org.apache.httpcomponents:httpclient:4.5.13"
+//        dl load "io.ktor:ktor-client-cio:2.0.0-beta-1"
+
+
+//      dl load "io.ktor:ktor-client-core-jvm:1.3.2-1.4-M2"
+
+//       val client = HttpClient(CIO) {
+//           expectSuccess = false
+//       }
+//
+////        val req = client.get("https://ktor.io/")
+//        println(client.engine)
+
     }
 }
 

@@ -37,8 +37,9 @@ class TestDependencyGraph {
             finder.findAll().map(ModuleReference::descriptor).map(ModuleDescriptor::name)
         )
         val modules =
-            listOf(1, 2).map { parentLayer.defineModulesWithOneLoader(config, ClassLoader.getSystemClassLoader()) }
+            (1..100).toList().map { parentLayer.defineModules(config) {object :ClassLoader() {} } }
                 .map { it.modules().first() }
+
         println(modules)
     }
 

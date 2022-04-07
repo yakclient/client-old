@@ -7,10 +7,16 @@ internal data class MavenDependency(
     val groupId: String,
     val artifactId: String,
     val version: String?,
-    val scope: String = "compile",
-) {
-    fun toDescriptor(): MavenDescriptor = MavenDescriptor(groupId, artifactId, version)
-}
+    val scope: String?,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+internal data class ManagedDependency(
+    val groupId: String,
+    val artifactId: String,
+    val version: String,
+    val scope: String?,
+)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 internal data class PomParent(
@@ -26,9 +32,15 @@ internal data class PomData(
     val version: String?,
     val properties: Map<String, String> = mapOf(),
     val parent: PomParent?,
+    val dependencyManagement: DependencyManagement = DependencyManagement(listOf()),
     val dependencies: Set<MavenDependency> = setOf(),
     val repositories: Set<PomRepository> = setOf(),
     val packaging: String = "jar"
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+internal data class DependencyManagement(
+    val dependencies: List<ManagedDependency> = listOf()
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

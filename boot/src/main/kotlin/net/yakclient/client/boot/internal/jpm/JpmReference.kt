@@ -11,6 +11,8 @@ import java.nio.ByteBuffer
 import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 
 public class JpmReference(
     delegate: ModuleReference,
@@ -19,12 +21,13 @@ public class JpmReference(
     delegate.location().orElseGet { null }
 ) {
     private val overrides: MutableMap<String, ArchiveReference.Entry> = HashMap()
+    private val removes: MutableSet<String> = HashSet()
 
     override val name: String = delegate.descriptor().name()
     override val location: URI = delegate.location().get()
     override val reader: ArchiveReference.Reader = JpmReader(delegate.open())
     override val writer: ArchiveReference.Writer = JpmWriter()
-    override val modified: Boolean get() = overrides.isNotEmpty()
+    override val modified: Boolean get() = overrides.isNotEmpty() || removes.isNotEmpty()
 
     override fun open(): ModuleReader = reader as ModuleReader
 
@@ -33,11 +36,13 @@ public class JpmReference(
     ) : ArchiveReference.Reader, ModuleReader by reader {
         private val cache: MutableMap<String, ArchiveReference.Entry> = HashMap()
 
-        override fun of(name: String): ArchiveReference.Entry? =
-            overrides[name] ?: cache[name] ?: reader.find(name).orElse(null)?.let { JpmEntryRef(name, it) }
-                ?.also { cache[name] = it }
+        override fun of(name: String): ArchiveReference.Entry? = (overrides[name]
+            ?: cache[name]
+            ?: reader.find(name).orElse(null)?.let { JpmEntryRef(name, it) }?.also { cache[name] = it })
+            ?.takeUnless { removes.contains(it.name) }
 
-        override fun entries(): Set<ArchiveReference.Entry> = list().map(::of).map { it as ArchiveReference.Entry }.collect(Collectors.toSet())
+        override fun entries(): Set<ArchiveReference.Entry> =
+            list().toList().mapNotNullTo(HashSet(), ::of)
 
         override fun find(name: String): Optional<URI> = Optional.ofNullable(of(name)?.asUri)
 
@@ -51,6 +56,10 @@ public class JpmReference(
 
     private inner class JpmWriter : ArchiveReference.Writer {
         override fun put(name: String, entry: ArchiveReference.Entry): Unit = let { overrides[name] = entry }
+
+        override fun remove(name: String) {
+            removes.add(name)
+        }
     }
 
     private data class JpmEntryRef(

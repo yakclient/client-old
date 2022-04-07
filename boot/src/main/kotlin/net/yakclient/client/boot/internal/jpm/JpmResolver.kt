@@ -21,17 +21,15 @@ import kotlin.collections.HashSet
 
 internal class JpmResolver : ArchiveResolver<JpmReference> {
     override fun resolve(
-        refs: List<JpmReference>,
+        archiveRefs: List<JpmReference>,
         clProvider: ClassLoaderProvider<JpmReference>,
         parents: List<ResolvedArchive>
     ): List<ResolvedArchive> {
-        val modulesByName = refs.associateBy { it.descriptor().name() }
+        val refs = archiveRefs.map(::loadRef)
+        val refsByName = refs.associateBy(ArchiveReference::name)
 
-        val finder = object : ModuleFinder {
-            override fun find(name: String): Optional<ModuleReference> = Optional.ofNullable(modulesByName[name])
+//        val archivesByName: Map<String, JpmReference> = archiveRefs.associateBy { it.descriptor().name() }
 
-            override fun findAll(): MutableSet<ModuleReference> = refs.toMutableSet()
-        }
         for (ref in refs) assert(
             ref.descriptor().requires()
                 .filterNot { it.modifiers().contains(ModuleDescriptor.Requires.Modifier.STATIC) }
@@ -40,14 +38,35 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
                         modules().any { it.name() == name } || parents().any { it.provides(name) }
 
                     parents.any { d -> r.name() == d.name || (d as ResolvedJpmArchive).configuration.provides(r.name()) } || ModuleLayer.boot()
-                        .modules().any { d -> r.name() == d.name }
+                        .modules().any { d -> r.name() == d.name } || refs.any { d ->
+                        d.descriptor().name() == r.name()
+                    }
                 }) {
             "A Dependency of ${ref.descriptor().name()} is not in the graph!"
+        }
+
+        val loaders = LazyMap<String, ClassLoader> {
+            clProvider(
+                refsByName[it] ?: throw IllegalStateException(
+                    "Error occurred when trying to create a class loader for module $it because module $it is not recognized. Only suppose to load modules for ${
+                        refs.joinToString(
+                            prefix = "[",
+                            postfix = "]"
+                        ) { m -> m.descriptor().name() }
+                    }"
+                ),
+            )
         }
 
         // Mapping to a HashSet to avoid multiple configuration that are the same(they do not override equals and hashcode but using the object ID's should be good enough)
         val parentLayers =
             parents.filterIsInstance<ResolvedJpmArchive>().mapTo(HashSet()) { it.layer }
+
+        val finder = object : ModuleFinder {
+            override fun find(name: String): Optional<ModuleReference> = Optional.ofNullable(refsByName[name])
+
+            override fun findAll(): MutableSet<ModuleReference> = refsByName.values.toMutableSet()//.toMutableSet()
+        }
 
         val configuration = Configuration.resolveAndBind(
             finder,
@@ -56,32 +75,6 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
             finder.findAll().map(ModuleReference::descriptor).map(ModuleDescriptor::name)
         )
 
-        val loaders = LazyMap<String, ClassLoader> {
-            clProvider(
-                modulesByName[it] ?: throw IllegalStateException(
-                    "Error occurred when trying to create a class loader for module $it because module $it is not recognized. Only suppose to load modules for ${
-                        refs.joinToString(
-                            prefix = "[",
-                            postfix = "]",
-                            transform = ArchiveReference::name
-                        )
-                    }"
-                ),
-            )
-//            JpmLoader(
-//                parent,
-//                modulesByName[it] ?: throw IllegalStateException(
-//                    "Error occurred when trying to create a class loader for module $it because module $it is not recognized. Only suppose to load modules for ${
-//                        refs.joinToString(
-//                            prefix = "[",
-//                            postfix = "]",
-//                            transform = ArchiveReference::name
-//                        )
-//                    }"
-//                ),
-//                parents.filterNot { c -> c.name == it } as List<ResolvedJpm>
-//            )
-        }
 
         val controller = ModuleLayer.defineModules(
             configuration,
@@ -97,12 +90,11 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
             }
         }
 
-        return layer.modules().map { m -> ResolvedJpmArchive(m, refs.first { it.name == m.name }) }//.map(::ResolvedJpm)
+        return layer.modules()
+            .map { m -> ResolvedJpmArchive(m, archiveRefs.first { it.name == m.name }) }//.map(::ResolvedJpm)
     }
 
-//    private fun loadFinder(refs: List<JpmReference>): ModuleFinder = ProvidedModuleFinder(refs.map(::loadRef))
-
-    private fun loadRef(ref: JpmReference): ModuleReference = if (!ref.modified) ref else {
+    private fun loadRef(ref: JpmReference): JpmReference = if (!ref.modified) ref else {
         val temp = YakClient.settings.moduleTempPath
         val desc = ref.descriptor()
         val jar = temp resolve "${desc.name().replace('.', '-')}${
@@ -138,24 +130,7 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
 
         assert(Files.exists(jar)) { "Failed to write jar to temp directory!" }
 
-        ModuleFinder.of(jar).find(ref.name)
-            .orElseThrow { IllegalArgumentException("Archive reference that should be present is not! Path: $jar") }
+        JpmReference(ModuleFinder.of(jar).find(ref.name)
+            .orElseThrow { IllegalArgumentException("Archive reference that should be present is not! Path: $jar") })
     }
-
-
-}
-
-
-private class ProvidedModuleFinder(
-    _refs: List<ModuleReference>
-) : ModuleFinder {
-    private val refs: Map<String, ModuleReference> = _refs.associateBy { it.descriptor().name() }
-
-    override fun find(name: String): Optional<ModuleReference> {
-        val ref = refs[name]
-        return if (ref?.descriptor()?.name() == name) Optional.of(ref)
-        else Optional.empty()
-    }
-
-    override fun findAll(): MutableSet<ModuleReference> = refs.values.toMutableSet()
 }
