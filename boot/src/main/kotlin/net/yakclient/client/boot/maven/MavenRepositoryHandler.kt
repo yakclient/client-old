@@ -67,7 +67,7 @@ internal open class MavenRepositoryHandler(
 
         val needed = dependencies.filter {
             when (it.scope) {
-                "compile", "provided", "runtime", "import" -> true
+                "compile", "runtime", "import" -> true
                 else -> false
             }
         }.map {
@@ -80,7 +80,13 @@ internal open class MavenRepositoryHandler(
 
 
         return Dependency(
-            if (pom.packaging != "pom") layout.archiveOf(group, artifact, version) else null,
+            if (pom.packaging != "pom") runCatching(InvalidMavenLayoutException::class) {
+                layout.archiveOf(
+                    group,
+                    artifact,
+                    version
+                )
+            } else null,
             needed.mapTo(HashSet()) {
                 Dependency.Transitive(repositories, it)
             },

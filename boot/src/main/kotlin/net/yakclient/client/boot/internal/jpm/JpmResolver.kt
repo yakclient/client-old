@@ -18,15 +18,18 @@ import java.util.*
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 import kotlin.collections.HashSet
+import kotlin.reflect.KClass
 
 internal class JpmResolver : ArchiveResolver<JpmReference> {
+    override val type: KClass<JpmReference> = JpmReference::class
+
     override fun resolve(
         archiveRefs: List<JpmReference>,
         clProvider: ClassLoaderProvider<JpmReference>,
         parents: List<ResolvedArchive>
     ): List<ResolvedArchive> {
         val refs = archiveRefs.map(::loadRef)
-        val refsByName = refs.associateBy(ArchiveReference::name)
+        val refsByName = refs.associateBy { it.descriptor().name() }
 
 //        val archivesByName: Map<String, JpmReference> = archiveRefs.associateBy { it.descriptor().name() }
 
@@ -36,11 +39,23 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
                 .all { r ->
                     fun Configuration.provides(name: String): Boolean =
                         modules().any { it.name() == name } || parents().any { it.provides(name) }
+//
+//                    fun ResolvedArchive.provides(name: String): Boolean = if (this is ResolvedJpmArchive) {
+//                        module.name == name || this.configuration.provides(name)
+//                    } else {
+//                        false
+//                    }
+//                        ref.descriptor().provides().any { it.name() == name } || parents.any { it.provides(name) }
 
-                    parents.any { d -> r.name() == d.name || (d as ResolvedJpmArchive).configuration.provides(r.name()) } || ModuleLayer.boot()
-                        .modules().any { d -> r.name() == d.name } || refs.any { d ->
-                        d.descriptor().name() == r.name()
+                    parents.filterIsInstance<ResolvedJpmArchive>().any {
+                        it.module.name == r.name() || it.configuration.provides(r.name())
+                    } || ModuleLayer.boot().configuration().provides(r.name()) || refs.any {
+                        it.descriptor().name() == r.name()
                     }
+
+//                    parents.any { d -> r.name() == d.name || (d as ResolvedJpmArchive).configuration.provides(r.name()) }
+//                            || ModuleLayer.boot().modules().any { d -> r.name() == d.name }
+//                            || refs.any { d -> d.descriptor().name() == r.name() }
                 }) {
             "A Dependency of ${ref.descriptor().name()} is not in the graph!"
         }
@@ -91,7 +106,11 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
         }
 
         return layer.modules()
-            .map { m -> ResolvedJpmArchive(m, archiveRefs.first { it.name == m.name }) }//.map(::ResolvedJpm)
+            .map { m ->
+                ResolvedJpmArchive(
+                    m,
+                    archiveRefs.first { it.descriptor().name() == m.name })
+            }//.map(::ResolvedJpm)
     }
 
     private fun loadRef(ref: JpmReference): JpmReference = if (!ref.modified) ref else {
@@ -104,11 +123,10 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
         Files.deleteIfExists(jar)
         jar.make()
 
-
         JarOutputStream(FileOutputStream(jar.toFile())).use { target ->
             ref.reader.entries().forEach { e ->
                 val entry = JarEntry(e.name)
-
+//
                 target.putNextEntry(entry)
 
                 val eIn = e.asInputStream
@@ -130,7 +148,7 @@ internal class JpmResolver : ArchiveResolver<JpmReference> {
 
         assert(Files.exists(jar)) { "Failed to write jar to temp directory!" }
 
-        JpmReference(ModuleFinder.of(jar).find(ref.name)
+        JpmReference(ModuleFinder.of(jar).find(ref.descriptor().name())
             .orElseThrow { IllegalArgumentException("Archive reference that should be present is not! Path: $jar") })
     }
 }

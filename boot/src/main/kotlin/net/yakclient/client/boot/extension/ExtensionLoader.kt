@@ -5,12 +5,13 @@ import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveReference
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
-import net.yakclient.client.boot.dependency.ArchiveResolver
 import net.yakclient.client.boot.dependency.DependencyGraph
+import net.yakclient.client.boot.internal.jpm.JpmReference
 import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveLoader
 import net.yakclient.client.boot.maven.MAVEN_LOCAL
 import net.yakclient.client.util.toConfig
+import java.nio.file.Path
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -19,7 +20,8 @@ public object ExtensionLoader {
 
     @JvmStatic
     public fun loadDependencies(settings: ExtensionSettings): List<ResolvedArchive> {
-        val repositories = settings.repositories?.map {DependencyGraph.ofRepository(it, YakClient.dependencyResolver)} ?: listOf()
+        val repositories =
+            settings.repositories?.map { DependencyGraph.ofRepository(it, YakClient.dependencyResolver) } ?: listOf()
 
         return settings.dependencies?.flatMap { d ->
             repositories.firstNotNullOfOrNull { r -> r.load(d).takeIf(Collection<*>::isNotEmpty) }
@@ -39,6 +41,16 @@ public object ExtensionLoader {
             ?: throw IllegalStateException("Failed to find or read ext-settings.conf file in module: ${ref.location.path}!")
 
     @JvmStatic
+    public fun load(
+        path: Path,
+        parent: Extension,
+    ): Extension {
+        val ref = ArchiveUtils.find(path, ArchiveUtils.jpmFinder)
+        val settings = loadSettings(ref)
+        return load(ref, parent, settings, loadDependencies(settings))
+    }
+
+    @JvmStatic
     @JvmOverloads
     public fun load(
         ref: ArchiveReference,
@@ -46,6 +58,8 @@ public object ExtensionLoader {
         settings: ExtensionSettings = loadSettings(ref),
         dependencies: List<ResolvedArchive> = loadDependencies(settings)
     ): Extension {
+        check(ref is JpmReference) { "ExtensionLoader only supports JPM archives!" }
+
         if (settings.repositories?.any { it.type == MAVEN_LOCAL } == true) logger.log(
             Level.WARNING,
             "Extension: '${settings.name}' contains a repository referencing maven local! Make sure this is removed in all production builds."
@@ -53,7 +67,8 @@ public object ExtensionLoader {
 
         val loader = ArchiveLoader(parent.ref.classloader, dependencies.map(::ArchiveComponent), ref)
 
-        val archive: ResolvedArchive = ArchiveUtils.resolve(ref, loader, dependencies + parent.ref)
+        val archive: ResolvedArchive =
+            ArchiveUtils.resolve(ref, loader, ArchiveUtils.jpmResolver, dependencies + parent.ref)
 
         val ext: Extension =
             archive.classloader.loadClass(settings.extensionClass).getConstructor().newInstance() as Extension

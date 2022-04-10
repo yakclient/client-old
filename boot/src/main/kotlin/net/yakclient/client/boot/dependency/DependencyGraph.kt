@@ -7,6 +7,8 @@ import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
+import net.yakclient.client.util.mapBlocking
+import net.yakclient.client.util.mapNotBlocking
 import java.nio.file.Path
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -17,7 +19,7 @@ public object DependencyGraph {
 
     private val graph: MutableMap<Dependency.Descriptor, DependencyNode> = HashMap()
 
-    public fun ofRepository(settings: RepositorySettings, resolver: DependencyResolver = ArchiveResolver()): DependencyLoader<*> =
+    public fun ofRepository(settings: RepositorySettings, resolver: DependencyResolver = ArchiveDependencyResolver()): DependencyLoader<*> =
         ofRepository(RepositoryFactory.create(settings), resolver)
 
     public fun <T : Dependency.Descriptor> ofRepository(handler: RepositoryHandler<T>, resolver: DependencyResolver): DependencyLoader<T> =
@@ -25,7 +27,7 @@ public object DependencyGraph {
 
     public class DependencyLoader<D : Dependency.Descriptor> internal constructor(
         private val repo: RepositoryHandler<D>,
-        private val resolver: DependencyResolver = ArchiveResolver()
+        private val resolver: DependencyResolver = ArchiveDependencyResolver()
     ) {
 
         // TODO Replace the list with some sort of deferred archive that delegates to children
@@ -37,7 +39,7 @@ public object DependencyGraph {
             val cacheInternal = runBlocking { cacheInternal(desc) }
 
             return if (cacheInternal) loadCached(DependencyCache.getOrNull(desc)!!).referenceOrChildren() else {
-                logger.log(Level.WARNING, "Failed to load dependency : '${desc.toPrettyString()}'")
+                logger.log(Level.WARNING, "Failed to cache dependency : '${desc.toPrettyString()}'")
                 listOf()
             }
         }
@@ -54,28 +56,37 @@ public object DependencyGraph {
                 val dependency = repo.find(desc) ?: return false
 
                 coroutineScope {
-                    val jobs = dependency.dependants.map { d ->
+                    val jobs = dependency.dependants.mapNotBlocking { d ->
                         assert(d.possibleRepos.isNotEmpty()) { "Dependency: ${d.desc.toPrettyString()} has no associated repositories! (Issue in the repository handler: ${repo::class.java.name})" }
 
-                        async {
-                            d.possibleRepos.any { r ->
-                                val handler = RepositoryFactory.create(r) as RepositoryHandler<Dependency.Descriptor>
-                                val loader = DependencyLoader(handler, resolver)
+                        d.possibleRepos.any { r ->
+                            val handler = RepositoryFactory.create(r) as RepositoryHandler<Dependency.Descriptor>
+                            val loader = DependencyLoader(handler, resolver)
 
-                                loader.cacheInternal(d.desc, DependencyTrace(trace, dependency.desc))
-                            } to d.desc
-                        }
+                            loader.cacheInternal(d.desc, DependencyTrace(trace, dependency.desc))
+                        } to d.desc
                     }
+//                    val jobs = dependency.dependants.map { d ->
+//                        assert(d.possibleRepos.isNotEmpty()) { "Dependency: ${d.desc.toPrettyString()} has no associated repositories! (Issue in the repository handler: ${repo::class.java.name})" }
+//
+//                        async {
+//                            d.possibleRepos.any { r ->
+//                                val handler = RepositoryFactory.create(r) as RepositoryHandler<Dependency.Descriptor>
+//                                val loader = DependencyLoader(handler, resolver)
+//
+//                                loader.cacheInternal(d.desc, DependencyTrace(trace, dependency.desc))
+//                            } to d.desc
+//                        }
+//                    }
 
                     val failed = jobs
-                        .map { it.await() }
                         .filterNot { r -> r.first }
                         .map { it.second }
 
                     if (failed.isNotEmpty()) {
                         logger.log(
                             Level.WARNING,
-                            "Failed loading dependencies : ${
+                            "Failed caching dependencies : ${
                                 failed.joinToString(transform = Dependency.Descriptor::toPrettyString)
                             }, Dependency trace was: ${trace.toPrettyString(dependency)}. "
                         )
@@ -125,7 +136,7 @@ public object DependencyGraph {
         private fun loadReference(
             path: Path,
             dependencies: List<DependencyNode>
-        ) = resolver(ArchiveUtils.find(path), dependencies.flatMap(DependencyNode::referenceOrChildren))
+        ) = resolver(ArchiveUtils.find(path, ArchiveUtils.jpmFinder), dependencies.flatMap(DependencyNode::referenceOrChildren))
     }
 }
 
@@ -150,9 +161,9 @@ private fun DependencyTrace.topDependency(): Dependency.Descriptor? =
 
 private fun DependencyTrace?.toPrettyString(
     dependency: Dependency
-) = this?.flatten()?.asReversed()
-    ?.joinToString(
+) = this?.flatten()?.joinToString(
         separator = " -> ",
+        postfix = " -> ${dependency.desc.toPrettyString()}"
     ) ?: dependency.desc.artifact
 
 internal data class DependencyTrace(

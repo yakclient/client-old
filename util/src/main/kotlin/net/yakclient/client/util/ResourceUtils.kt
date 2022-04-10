@@ -16,7 +16,7 @@ public fun URI.toResource(checkSum: ByteArray, checkType: String = "SHA1"): Safe
 
 public fun Path.toResource(): SafeResource = LocalResource(this)
 
-public suspend infix fun SafeResource.copyTo(to: Path): Path = withContext(Dispatchers.IO) {
+public suspend infix fun SafeResource.copyTo(to: Path): Path = coroutineScope { // Dont want to use IO scope as we need to make sure the resource has been fully copied before returning
     Channels.newChannel(open()).use { cin ->
         to.make()
         FileOutputStream(to.toFile()).use { fout ->

@@ -1,10 +1,12 @@
 package net.yakclient.client.boot.archive
 
+import kotlinx.coroutines.flow.Flow
+import java.io.Closeable
 import java.io.InputStream
 import java.net.URI
 
-public interface ArchiveReference {
-    public val name: String
+public interface ArchiveReference : AutoCloseable {
+//    public val name: String
     public val location: URI
     public val reader: Reader
     public val writer: Writer
@@ -13,9 +15,9 @@ public interface ArchiveReference {
     public interface Reader {
         public fun of(name: String): Entry?
 
-        public fun contains(name: String): Boolean = get(name) == null
+        public fun contains(name: String): Boolean = get(name) != null
 
-        public fun entries(): Set<Entry>
+        public fun entries(): Sequence<Entry>
 
         public operator fun get(name: String): Entry? = of(name)
     }

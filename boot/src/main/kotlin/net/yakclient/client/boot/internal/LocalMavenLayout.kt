@@ -14,7 +14,7 @@ private val path = LOCAL.toAbsolutePath().toString()
 
 internal object LocalMavenLayout : MavenRepositoryLayout {
     override val settings: RepositorySettings = RepositorySettings(
-        path, mapOf(
+        MAVEN_LOCAL, mapOf(
             LAYOUT_OPTION_NAME to "local",
             URL_OPTION_NAME to path
         )

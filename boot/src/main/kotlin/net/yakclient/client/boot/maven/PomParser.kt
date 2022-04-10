@@ -77,7 +77,7 @@ internal fun parsePom(data: PomData, thisLayout: MavenRepositoryLayout): Compres
     }
 
 
-    val properties = parents
+    val properties = all
         .flatMap { it.properties.asSequence() }
         .associate { it.key to it.value }
 

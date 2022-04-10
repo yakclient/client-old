@@ -7,5 +7,7 @@ public data class MavenDescriptor(
     override val artifact: String,
     override val version: String,
 ) : Dependency.Descriptor {
-    override fun toString(): String = "$group:$artifact:$version"
+    override fun toString(): String = toPrettyString()
+
+    override fun toPrettyString(): String ="$group:$artifact:$version"
 }

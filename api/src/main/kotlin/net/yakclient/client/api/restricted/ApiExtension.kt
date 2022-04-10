@@ -7,6 +7,6 @@ import net.yakclient.client.boot.archive.ArchiveUtils
 
 public class ApiExtension : Extension() {
     override fun onLoad() {
-        ExtensionLoader.load(ArchiveUtils.find(YakClient.settings.apiInternalLocation), this).onLoad()
+        ExtensionLoader.load(YakClient.settings.apiInternalLocation, this).onLoad()
     }
 }

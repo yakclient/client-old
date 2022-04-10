@@ -1,5 +1,7 @@
 import net.yakclient.client.boot.internal.InternalLayoutProvider;
 import net.yakclient.client.boot.internal.InternalRepoProvider;
+import net.yakclient.client.boot.internal.ZipReferenceFinder;
+import net.yakclient.client.boot.internal.ZipReferenceResolver;
 import net.yakclient.client.boot.internal.jpm.JpmFinder;
 import net.yakclient.client.boot.internal.jpm.JpmResolver;
 import net.yakclient.client.boot.archive.ArchiveFinder;
@@ -56,8 +58,9 @@ module yakclient.client.boot {
     uses RepositoryProvider;
     uses MavenLayoutProvider;
 
-    provides ArchiveResolver with JpmResolver;
-    provides ArchiveFinder with JpmFinder;
+    provides ArchiveResolver with JpmResolver, ZipReferenceResolver;
+    provides ArchiveFinder with JpmFinder, ZipReferenceFinder;
+
     provides RepositoryProvider with InternalRepoProvider;
     provides MavenLayoutProvider with InternalLayoutProvider;
 }

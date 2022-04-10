@@ -10,7 +10,7 @@ internal class ResolvedJpmArchive(
     val module: Module, override val reference: ArchiveReference
 ) : ResolvedArchive {
     override val classloader: ClassLoader = module.classLoader ?: YakClient.loader
-    override val name: String = module.name
+//    override val name: String = module.name
     val configuration: Configuration = module.layer.configuration()
     val layer: ModuleLayer = module.layer
     private val services: Map<String, List<Class<*>>> = module.descriptor.provides().associate { it.service() to it.providers().map(classloader::loadClass) }

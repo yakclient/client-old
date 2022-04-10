@@ -1,18 +1,20 @@
 package net.yakclient.client.boot.test.archive
 
 import net.yakclient.client.boot.init
-import net.yakclient.client.util.child
-import net.yakclient.client.util.parent
-import net.yakclient.client.util.readInputStream
-import net.yakclient.client.util.workingDir
+import net.yakclient.client.util.*
+import java.io.File
 import java.lang.module.Configuration
 import java.lang.module.ModuleDescriptor
 import java.lang.module.ModuleFinder
 import java.lang.module.ModuleReference
+import java.net.URI
 import java.nio.ByteBuffer
+import java.nio.file.FileSystems
 import java.security.CodeSource
 import java.security.ProtectionDomain
 import java.security.cert.Certificate
+import java.util.jar.JarFile
+import java.util.zip.ZipFile
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -56,5 +58,19 @@ class TestModuleLoading {
         val module = layer.modules().first()
 
         assert(module.classLoader.loadClass("org.objectweb.asm.Frame").module?.name == "org.objectweb.asm")
+    }
+
+    @Test
+    fun `Test read entry in zip file`() {
+        val location = checkNotNull(this::class.java.getResource("/zip-test.zip"))
+        val zip = ZipFile(location.file)
+
+        zip.use {
+            val entry = zip.getEntry("testFile")
+            println(zip.getInputStream(entry).readAllBytes().toString(Charsets.UTF_8))
+
+            val uri = URI("jar:${location}!/${entry.name}")
+            println(uri.openStream().readAllBytes().toString(Charsets.UTF_8))
+        }
     }
 }

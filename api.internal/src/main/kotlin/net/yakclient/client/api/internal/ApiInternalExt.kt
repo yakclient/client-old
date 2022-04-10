@@ -3,10 +3,14 @@ package net.yakclient.client.api.internal
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ArchiveUtils.resolve
+import net.yakclient.client.boot.archive.ArchiveUtils.zipFinder
 import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
@@ -19,6 +23,8 @@ import net.yakclient.client.boot.maven.URL_OPTION_NAME
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.*
 import net.yakclient.client.util.resource.SafeResource
+import java.io.InputStream
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 
@@ -27,7 +33,7 @@ public class ApiInternalExt : Extension() {
     private infix fun SafeResource.copyToBlocking(to: Path): Path = runBlocking { this@copyToBlocking copyTo to }
 
     override fun onLoad() {
-        val ext = ArchiveUtils.find(YakClient.settings.mcExtLocation)
+        val ext = ArchiveUtils.find(YakClient.settings.mcExtLocation, ArchiveUtils.jpmFinder)
 
         val manifest = ObjectMapper().registerModule(KotlinModule())
             .readValue<ClientManifest>(YakClient.settings.clientJsonFile.toFile())
@@ -75,46 +81,35 @@ public class ApiInternalExt : Extension() {
 //        val depLoader = DependencyGraph.ofRepository(MojangRepositoryHandler)
 //        val mcDeps: List<ResolvedArchive> = manifest.libraries.map { depLoader.load(it.name)!! }
 
-        val libs = DependencyGraph.ofRepository(RepositorySettings(type = MAVEN, options = mapOf(URL_OPTION_NAME to "https://libraries.minecraft.net")))
-
+//        val libs = DependencyGraph.ofRepository(RepositorySettings(type = MAVEN, options = mapOf(URL_OPTION_NAME to "https://libraries.minecraft.net")))
 
 
         val overriddenNames = hashMapOf<String, String>()
 
-//        val libNames: Map<String, String> = LazyMap(overriddenNames) { n ->
-//            n.split(':').let { "${it[1]}-${it[2]}" }
-//        }
+        val libNames: Map<String, String> = LazyMap(overriddenNames) { n ->
+            n.split(':').let { "${it[1]}-${it[2]}" }
+        }
 
-//        val libPath = versionPath resolve YakClient.settings.minecraftLibDir
+        val libPath = versionPath resolve YakClient.settings.minecraftLibDir
 
-        val mcReference = ArchiveUtils.find(minecraftPath)
+        val mcReference = ArchiveUtils.find(minecraftPath, zipFinder)
 
-        mcReference.writer.remove("META-INF/MANIFEST.MF")
+        val dependencies = manifest.libraries.mapBlocking {
+            val path = libPath resolve "${libNames[it.name]}.jar"
 
-        val dependencies = manifest.libraries.flatMap { libs.load(it.name) }
+            if (path.make()) it.downloads.artifact.url.toResource(
+                HexFormat.of().parseHex(it.downloads.artifact.checksum)
+            ) copyTo path
 
-        val loader = ArchiveLoader(this.loader, dependencies.map(::ArchiveComponent), mcReference)
+            ArchiveUtils.find(
+                path,
+                zipFinder
+            )
+        }
 
-        val minecraft = resolve(mcReference, loader )
-//        val references = (manifest.libraries.mapTo(ArrayList()) {
-//            val artifact = it.downloads.artifact
-//            val path = libPath resolve "${libNames[it.name]!!}.jar"
-//            if (path.make()) artifact.url.toResource(HexFormat.of().parseHex(artifact.checksum)) copyToBlocking path else path
-//        }.map(ArchiveUtils::find) + mcReference).filterNot { it.name == "java.objc.bridge" }
-//        references.patch("java.objc.bridge", )
+        val loader = ClConglomerate(this.loader, (dependencies + mcReference).map(::ArchiveConglomerateProvider))
 
-//        val loader = ClConglomerate(this.loader, references.map(::ArchiveConglomerateProvider))
-
-
-//        val loader = ArchiveLoader(
-//            loader,
-//            references.map(::ArchiveComponent),
-//            mcReference
-//        ) // ClConglomerate(loader, (mcDeps + reference).map(::ArchiveConglomerateProvider))
-
-//        val minecraft = resolve(
-//            references,
-//        ) { loader }
+        val minecraft = resolve(dependencies + mcReference) { loader }
 
         val settings = ExtensionLoader.loadSettings(ext)
 
@@ -123,6 +118,6 @@ public class ApiInternalExt : Extension() {
             this,
             settings = settings,
             dependencies = ExtensionLoader.loadDependencies(settings)
-                .let { it.toMutableList().also { m -> m.add(minecraft) } }).onLoad()
+                .let { it.toMutableList().also { m -> m.addAll(minecraft) } }).onLoad()
     }
 }
