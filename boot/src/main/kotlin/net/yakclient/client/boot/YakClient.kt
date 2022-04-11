@@ -6,8 +6,7 @@ import io.github.config4k.registerCustomType
 import kotlinx.cli.ArgParser
 import kotlinx.cli.required
 import net.yakclient.client.boot.YakClient.dependencyResolver
-import net.yakclient.client.boot.archive.ArchiveReference
-import net.yakclient.client.boot.archive.ArchiveUtils
+import net.yakclient.client.boot.archive.ArchiveHandle
 import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.dependency.ArchiveDependencyResolver
 import net.yakclient.client.boot.dependency.DependencyGraph
@@ -15,14 +14,13 @@ import net.yakclient.client.boot.dependency.DependencyResolutionFallBack
 import net.yakclient.client.boot.dependency.DependencyResolver
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
-import net.yakclient.client.boot.internal.jpm.JpmReference
-import net.yakclient.client.boot.internal.jpm.ResolvedJpmArchive
+import net.yakclient.client.boot.internal.jpm.JpmHandle
+import net.yakclient.client.boot.internal.jpm.ResolvedJpm
 import net.yakclient.client.boot.maven.MAVEN_CENTRAL
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.*
 import net.yakclient.client.util.resource.SafeResource
-import java.net.URI
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.logging.Level
@@ -33,18 +31,19 @@ public object YakClient : Extension() {
     internal var innited: Boolean = false
     public var settings: BootSettings by immutableLateInit()
     public var yakDir: Path by immutableLateInit()
-    public val dependencyResolver: DependencyResolver = object : DependencyResolutionFallBack(ArchiveDependencyResolver()) {
-        override fun resolve(ref: ArchiveReference, dependants: List<ResolvedArchive>): ResolvedArchive? {
-            fun moduleByName(name: String) : ResolvedArchive? = ModuleLayer.boot().modules().find {
-                it.name == name
-            }?.let { ResolvedJpmArchive(it, ref) }
+    public val dependencyResolver: DependencyResolver =
+        object : DependencyResolutionFallBack(ArchiveDependencyResolver()) {
+            override fun resolve(ref: ArchiveHandle, dependants: List<ResolvedArchive>): ResolvedArchive? {
+                fun moduleByName(name: String): ResolvedArchive? = ModuleLayer.boot().modules().find {
+                    it.name == name
+                }?.let { ResolvedJpm(it) }
 
-            return if (ref is JpmReference) when (ref.descriptor().name()) {
-                "javaee.api" -> moduleByName("java.xml")
-                else -> moduleByName(ref.descriptor().name())
-            } else null
+                return if (ref is JpmHandle) when (ref.descriptor().name()) {
+                    "javaee.api" -> moduleByName("java.xml")
+                    else -> moduleByName(ref.descriptor().name())
+                } else null
+            }
         }
-    }
 
 
     public fun exit(e: Exception, extra: String = "A critical error has occurred"): Nothing {
@@ -100,21 +99,9 @@ public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
     YakClient.settings.tempPath.deleteAll()
 
     YakClient.init(
-        ResolvedJpmArchive(
+        ResolvedJpm(
             YakClient::class.java.module,
-            object : ArchiveReference {
-//                override val name: String = "yakclient.client.boot"
-                override val location: URI
-                    get() = throw UnsupportedOperationException()
-                override val reader: ArchiveReference.Reader
-                    get() = throw UnsupportedOperationException()
-                override val writer: ArchiveReference.Writer
-                    get() = throw UnsupportedOperationException()
-                override val modified: Boolean = false
-                override fun close() {
-                    throw UnsupportedOperationException()
-                }
-            }),
+        ),
         YakClient.settings,
         null
     )
@@ -136,7 +123,7 @@ public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
         dl load "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.6"
         dl load "org.jetbrains.kotlin:kotlin-stdlib-common:2.0.0-beta-1"
 //        dl load "org.apache.httpcomponents:httpclient:4.5.13"
-//        dl load "io.ktor:ktor-client-cio:2.0.0-beta-1"
+        dl load "io.ktor:ktor-client-cio:2.0.0"
 
 
 //      dl load "io.ktor:ktor-client-core-jvm:1.3.2-1.4-M2"

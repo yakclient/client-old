@@ -1,10 +1,10 @@
 package net.yakclient.client.boot.archive
 
-import net.yakclient.client.boot.internal.ZipReference
-import net.yakclient.client.boot.internal.ZipReferenceFinder
-import net.yakclient.client.boot.internal.ZipReferenceResolver
+import net.yakclient.client.boot.internal.zip.ZipHandle
+import net.yakclient.client.boot.internal.zip.ZipFinder
+import net.yakclient.client.boot.internal.zip.ZipResolver
 import net.yakclient.client.boot.internal.jpm.JpmFinder
-import net.yakclient.client.boot.internal.jpm.JpmReference
+import net.yakclient.client.boot.internal.jpm.JpmHandle
 import net.yakclient.client.boot.internal.jpm.JpmResolver
 import net.yakclient.client.util.CAST
 import java.nio.file.Path
@@ -13,11 +13,11 @@ import kotlin.reflect.KClass
 
 
 public object ArchiveUtils {
-    public val jpmResolver: ArchiveResolver<JpmReference> = JpmResolver()
-    public val jpmFinder : ArchiveFinder<JpmReference> = JpmFinder()
+    public val jpmResolver: ArchiveResolver<JpmHandle> = JpmResolver()
+    public val jpmFinder : ArchiveFinder<JpmHandle> = JpmFinder()
 
-    public val zipResolver : ArchiveResolver<ZipReference> = ZipReferenceResolver()
-    public val zipFinder : ArchiveFinder<ZipReference> = ZipReferenceFinder()
+    public val zipResolver : ArchiveResolver<ZipHandle> = ZipResolver()
+    public val zipFinder : ArchiveFinder<ZipHandle> = ZipFinder()
 
 //    @Suppress(CAST)
 //    private fun <T : ArchiveReference> finder(clazz: KClass<T>): ArchiveFinder<T> {
@@ -26,16 +26,16 @@ public object ArchiveUtils {
 //    }
 
     @Suppress(CAST)
-    private fun <T : ArchiveReference> resolver(clazz: KClass<T>): ArchiveResolver<T> {
+    private fun <T : ArchiveHandle> resolver(clazz: KClass<T>): ArchiveResolver<T> {
         return (ArchiveCatalog.loadService(ArchiveResolver::class)
             .firstOrNull { clazz == it.type } as? ArchiveResolver<T>)
             ?: throw IllegalStateException("Not able to load the ArchiveResolver, make sure all services are declared!")
     }
 
-    public fun find(path: Path, finder: ArchiveFinder<*>): ArchiveReference = finder.find(path)
+    public fun find(path: Path, finder: ArchiveFinder<*>): ArchiveHandle = finder.find(path)
 
     @JvmOverloads
-    public fun <T : ArchiveReference> resolve(
+    public fun <T : ArchiveHandle> resolve(
         refs: List<T>,
         resolver: ArchiveResolver<T> = run {
             val type = refs.first()::class
@@ -49,7 +49,7 @@ public object ArchiveUtils {
     ): List<ResolvedArchive> = resolver.resolve(refs, clProvider, parents).onEach(ArchiveCatalog::catalog)
 
     @JvmOverloads
-    public fun <T : ArchiveReference> resolve(
+    public fun <T : ArchiveHandle> resolve(
         ref: T,
         classloader: ClassLoader,
         resolver: ArchiveResolver<T> = @Suppress(CAST) (resolver(ref::class) as ArchiveResolver<T>),

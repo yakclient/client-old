@@ -1,16 +1,16 @@
 package net.yakclient.client.boot.archive
 
-import kotlinx.coroutines.flow.Flow
-import java.io.Closeable
 import java.io.InputStream
 import java.net.URI
 
-public interface ArchiveReference : AutoCloseable {
-//    public val name: String
+public interface ArchiveHandle : AutoCloseable {
     public val location: URI
     public val reader: Reader
     public val writer: Writer
     public val modified: Boolean
+    public val isClosed: Boolean
+    public val isOpen: Boolean
+        get() = !isClosed
 
     public interface Reader {
         public fun of(name: String): Entry?
@@ -69,13 +69,13 @@ public interface ArchiveReference : AutoCloseable {
     }
 }
 
-public typealias ArchiveCollisionDetector = (original: ArchiveReference.Entry, toWrite: ArchiveReference.Entry) -> Boolean // True if should overwrite
-
-public fun ArchiveReference.and(
-    other: ArchiveReference,
-    collisionDetector: ArchiveCollisionDetector = { _, _ -> true }
-): ArchiveReference = also {
-    other.reader.entries().forEach {
-        this.reader[it.name]?.takeUnless { o -> collisionDetector(o, it) } ?: writer.put(it)
-    }
-}
+//public typealias ArchiveCollisionDetector = (original: ArchiveReference.Entry, toWrite: ArchiveReference.Entry) -> Boolean // True if should overwrite
+//
+//public fun ArchiveReference.and(
+//    other: ArchiveReference,
+//    collisionDetector: ArchiveCollisionDetector = { _, _ -> true }
+//): ArchiveReference = also {
+//    other.reader.entries().forEach {
+//        this.reader[it.name]?.takeUnless { o -> collisionDetector(o, it) } ?: writer.put(it)
+//    }
+//}

@@ -11,8 +11,8 @@ dependencies {
 //    implementation("net.yakclient:bmu-api:1.0-SNAPSHOT")
 //    implementation("net.yakclient:bmu-mixin:1.0-SNAPSHOT")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
-//    implementation("io.ktor:ktor-client-cio:2.0.0-beta-1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
+    implementation("io.ktor:ktor-client-cio:2.0.0")
 
     implementation(kotlin("reflect"))
 

@@ -61,22 +61,22 @@ internal data class McArtifact(
     val checksum: String
 )
 
-internal enum class ClassifierType {
+internal enum class ClassifierType(name: String) {
     @JsonProperty("javadoc")
-    JAVADOC,
+    JAVADOC("javadoc"),
 
     @JsonProperty("natives-linux")
-    NATIVES_LINUX,
+    NATIVES_LINUX("natives-linux"),
 
     @JsonProperty("natives-macos")
-    NATIVES_MACOS,
+    NATIVES_MACOS("natives-macos"),
 
     @JsonProperty("natives-osx")
-    NATIVES_OSX,
+    NATIVES_OSX("natives-osx"),
 
     @JsonProperty("natives-windows")
-    NATIVES_WINDOWS,
+    NATIVES_WINDOWS("natives-windows"),
 
     @JsonProperty("sources")
-    SOURCES
+    SOURCES("sources")
 }

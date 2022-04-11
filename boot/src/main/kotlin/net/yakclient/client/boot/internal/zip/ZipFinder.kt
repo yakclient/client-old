@@ -1,4 +1,4 @@
-package net.yakclient.client.boot.internal
+package net.yakclient.client.boot.internal.zip
 
 import net.yakclient.client.boot.archive.ArchiveFinder
 import java.nio.file.Path
@@ -6,11 +6,11 @@ import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import kotlin.reflect.KClass
 
-public class ZipReferenceFinder : ArchiveFinder<ZipReference> {
-    override val type: KClass<ZipReference> = ZipReference::class
+public class ZipFinder : ArchiveFinder<ZipHandle> {
+    override val type: KClass<ZipHandle> = ZipHandle::class
 
-    override fun find(path: Path): ZipReference {
-        return ZipReference(
+    override fun find(path: Path): ZipHandle {
+        return ZipHandle(
             JarFile(
                 path.toFile().also { assert(it.exists()) },
                 true,

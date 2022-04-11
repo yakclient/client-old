@@ -2,11 +2,11 @@ package net.yakclient.client.boot.extension
 
 import io.github.config4k.extract
 import net.yakclient.client.boot.YakClient
-import net.yakclient.client.boot.archive.ArchiveReference
+import net.yakclient.client.boot.archive.ArchiveHandle
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.dependency.DependencyGraph
-import net.yakclient.client.boot.internal.jpm.JpmReference
+import net.yakclient.client.boot.internal.jpm.JpmHandle
 import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveLoader
 import net.yakclient.client.boot.maven.MAVEN_LOCAL
@@ -36,7 +36,7 @@ public object ExtensionLoader {
     }
 
     @JvmStatic
-    public fun loadSettings(ref: ArchiveReference): BasicExtensionSettings =
+    public fun loadSettings(ref: ArchiveHandle): BasicExtensionSettings =
         ref.reader["ext-settings.conf"]?.asUri?.toConfig()?.extract<BasicExtensionSettings>("loader")
             ?: throw IllegalStateException("Failed to find or read ext-settings.conf file in module: ${ref.location.path}!")
 
@@ -53,12 +53,12 @@ public object ExtensionLoader {
     @JvmStatic
     @JvmOverloads
     public fun load(
-        ref: ArchiveReference,
+        ref: ArchiveHandle,
         parent: Extension,
         settings: ExtensionSettings = loadSettings(ref),
         dependencies: List<ResolvedArchive> = loadDependencies(settings)
     ): Extension {
-        check(ref is JpmReference) { "ExtensionLoader only supports JPM archives!" }
+        check(ref is JpmHandle) { "ExtensionLoader only supports JPM archives!" }
 
         if (settings.repositories?.any { it.type == MAVEN_LOCAL } == true) logger.log(
             Level.WARNING,

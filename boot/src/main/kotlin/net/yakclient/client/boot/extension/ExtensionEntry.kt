@@ -1,6 +1,6 @@
 package net.yakclient.client.boot.extension
 
-import net.yakclient.client.boot.archive.ArchiveReference
+import net.yakclient.client.boot.archive.ArchiveHandle
 import net.yakclient.client.util.openStream
 import net.yakclient.client.util.readInputStream
 import java.io.ByteArrayInputStream
@@ -13,7 +13,7 @@ public class ExtensionEntry(
     private val _uri: Supplier<URI?> = Supplier { null },
     private val _bytes: Supplier<ByteArray?> = Supplier { null },
     private val _ins: Supplier<InputStream?> = Supplier { null }
-) : ArchiveReference.Entry() {
+) : ArchiveHandle.Entry() {
     private operator fun <T> Supplier<T>.invoke(): T = get()
 
     override val asUri: URI
@@ -32,9 +32,9 @@ public fun entryOf(
     uri: URI? = null,
     bytes: ByteArray? = null,
     inputStream: InputStream? = null
-): ArchiveReference.Entry = ExtensionEntry(name, { uri }, { bytes }, { inputStream })
+): ArchiveHandle.Entry = ExtensionEntry(name, { uri }, { bytes }, { inputStream })
 
-public fun entryOfClass(className: String): ArchiveReference.Entry = ExtensionEntry(className, _uri = {
+public fun entryOfClass(className: String): ArchiveHandle.Entry = ExtensionEntry(className, _uri = {
     ClassLoader.getSystemResource("${className.replace('.', '/')}.class").toURI()
 }, _bytes = {
     ClassLoader.getSystemResourceAsStream("${className.replace('.', '/')}.class")!!.readInputStream()

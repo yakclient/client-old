@@ -3,28 +3,17 @@ package net.yakclient.client.api.internal
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.archive.ArchiveUtils
 import net.yakclient.client.boot.archive.ArchiveUtils.resolve
 import net.yakclient.client.boot.archive.ArchiveUtils.zipFinder
-import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
-import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
-import net.yakclient.client.boot.loader.ArchiveLoader
 import net.yakclient.client.boot.loader.ClConglomerate
-import net.yakclient.client.boot.maven.MAVEN
-import net.yakclient.client.boot.maven.URL_OPTION_NAME
-import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.*
 import net.yakclient.client.util.resource.SafeResource
-import java.io.InputStream
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 
@@ -92,6 +81,8 @@ public class ApiInternalExt : Extension() {
 
         val libPath = versionPath resolve YakClient.settings.minecraftLibDir
 
+        val nativesPath = libPath resolve YakClient.settings.minecraftNativesDir
+
         val mcReference = ArchiveUtils.find(minecraftPath, zipFinder)
 
         val dependencies = manifest.libraries.mapBlocking {
@@ -110,6 +101,22 @@ public class ApiInternalExt : Extension() {
         val loader = ClConglomerate(this.loader, (dependencies + mcReference).map(::ArchiveConglomerateProvider))
 
         val minecraft = resolve(dependencies + mcReference) { loader }
+
+        val nativeClassifier = when (OsType.get()) {
+            OsType.OS_X -> ClassifierType.NATIVES_MACOS
+            OsType.WINDOWS -> ClassifierType.NATIVES_WINDOWS
+            OsType.UNIX -> ClassifierType.NATIVES_LINUX
+            else -> throw IllegalStateException("Unknown OS type: $this")
+        }
+
+        manifest.libraries.forEach { lib ->
+            val (group, artifact, version) = lib.name.split(':')
+
+            lib.downloads.classifiers[nativeClassifier]?.let { native ->
+                val path = nativesPath resolve "$artifact-$version-$nativeClassifier.jar"
+                native.url.toResource(HexFormat.of().parseHex(native.checksum))
+            }
+        }
 
         val settings = ExtensionLoader.loadSettings(ext)
 

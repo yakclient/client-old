@@ -1,6 +1,6 @@
 package net.yakclient.client.boot.internal.jpm
 
-import net.yakclient.client.boot.archive.ArchiveReference
+import net.yakclient.client.boot.archive.ArchiveHandle
 import net.yakclient.client.util.openStream
 import net.yakclient.client.util.readInputStream
 import java.io.InputStream
@@ -11,20 +11,22 @@ import java.nio.ByteBuffer
 import java.util.*
 import java.util.stream.Stream
 
-public class JpmReference(
+public class JpmHandle(
     delegate: ModuleReference,
-) : ArchiveReference, ModuleReference(
+) : ArchiveHandle, ModuleReference(
     delegate.descriptor(),
     delegate.location().orElseGet { null }
 ) {
     private var closed: Boolean = false
-    private val overrides: MutableMap<String, ArchiveReference.Entry> = HashMap()
+    private val overrides: MutableMap<String, ArchiveHandle.Entry> = HashMap()
     private val removes: MutableSet<String> = HashSet()
 
     override val location: URI = delegate.location().get()
-    override val reader: ArchiveReference.Reader = JpmReader(delegate.open())
-    override val writer: ArchiveReference.Writer = JpmWriter()
+    override val reader: ArchiveHandle.Reader = JpmReader(delegate.open())
+    override val writer: ArchiveHandle.Writer = JpmWriter()
     override val modified: Boolean get() = overrides.isNotEmpty() || removes.isNotEmpty()
+    override val isClosed: Boolean
+        get() = closed
 
     override fun close() {
         closed = true
@@ -41,10 +43,10 @@ public class JpmReference(
 
     private inner class JpmReader(
         private val reader: ModuleReader
-    ) : ArchiveReference.Reader, ModuleReader by reader {
-        private val cache: MutableMap<String, ArchiveReference.Entry> = HashMap()
+    ) : ArchiveHandle.Reader, ModuleReader by reader {
+        private val cache: MutableMap<String, ArchiveHandle.Entry> = HashMap()
 
-        override fun of(name: String): ArchiveReference.Entry? {
+        override fun of(name: String): ArchiveHandle.Entry? {
             ensureOpen()
 
             return (overrides[name]
@@ -53,7 +55,7 @@ public class JpmReference(
                 ?.takeUnless { removes.contains(it.name) }
         }
 
-        override fun entries(): Sequence<ArchiveReference.Entry> = Sequence {
+        override fun entries(): Sequence<ArchiveHandle.Entry> = Sequence {
             list().iterator()
         }.mapNotNull { of(it) }
 
@@ -70,8 +72,8 @@ public class JpmReference(
         }
     }
 
-    private inner class JpmWriter : ArchiveReference.Writer {
-        override fun put(name: String, entry: ArchiveReference.Entry) {
+    private inner class JpmWriter : ArchiveHandle.Writer {
+        override fun put(name: String, entry: ArchiveHandle.Entry) {
             ensureOpen()
             overrides[name] = entry
         }
@@ -85,7 +87,7 @@ public class JpmReference(
     private data class JpmEntryRef(
         override val name: String,
         override val asUri: URI
-    ) : ArchiveReference.Entry() {
+    ) : ArchiveHandle.Entry() {
         override val asInputStream: InputStream
             get() = asUri.openStream()
         override val asBytes: ByteArray

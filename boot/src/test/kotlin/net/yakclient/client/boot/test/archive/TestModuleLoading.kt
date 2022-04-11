@@ -1,5 +1,6 @@
 package net.yakclient.client.boot.test.archive
 
+import net.yakclient.client.boot.InitScope
 import net.yakclient.client.boot.init
 import net.yakclient.client.util.*
 import java.io.File
@@ -21,7 +22,7 @@ import kotlin.test.Test
 class TestModuleLoading {
     @BeforeTest
     fun setup() {
-        init(workingDir().parent("client").child("workingDir").toPath())
+        init(workingDir().parent("client").child("workingDir").toPath(), InitScope.TEST)
     }
 
     @Test
@@ -72,5 +73,16 @@ class TestModuleLoading {
             val uri = URI("jar:${location}!/${entry.name}")
             println(uri.openStream().readAllBytes().toString(Charsets.UTF_8))
         }
+    }
+
+    @Test
+    fun `Test read entry in closed zip file`() {
+        val location = checkNotNull(this::class.java.getResource("/zip-test.zip"))
+        val zip = ZipFile(location.file)
+
+        zip.close()
+
+        val entry = zip.getEntry("testFile")
+        println(zip.getInputStream(entry).readAllBytes().toString(Charsets.UTF_8))
     }
 }
