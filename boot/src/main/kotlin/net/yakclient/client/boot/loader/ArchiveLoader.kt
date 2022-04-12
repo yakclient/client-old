@@ -1,6 +1,7 @@
 package net.yakclient.client.boot.loader
 
 import net.yakclient.client.boot.archive.ArchiveHandle
+import net.yakclient.client.util.readInputStream
 import java.nio.ByteBuffer
 import java.security.CodeSource
 import java.security.ProtectionDomain
@@ -23,7 +24,7 @@ public class ArchiveLoader(
         val entry: ArchiveHandle.Entry =
             handle.reader["${name.replace('.', '/')}.class"] ?: return super.loadClass(name, resolve)
 
-        val bb = ByteBuffer.wrap(entry.asBytes)
+        val bb = ByteBuffer.wrap(entry.resource.open().readInputStream())
 
         return defineClass(name, bb, domain).also { if (resolve) resolveClass(it) }
     }

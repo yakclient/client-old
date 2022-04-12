@@ -9,6 +9,7 @@ module yakclient.client.api.internal {
     requires kotlinx.coroutines.core.jvm;
 
     opens net.yakclient.client.api.internal to com.fasterxml.jackson.databind;
+    exports net.yakclient.client.api.internal;
 
 //    provides net.yakclient.client.boot.repository.RepositoryProvider with net.yakclient.client.api.internal.MojangRepositoryProvider;
 }

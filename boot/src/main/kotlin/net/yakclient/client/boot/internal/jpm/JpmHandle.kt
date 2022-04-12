@@ -2,7 +2,9 @@ package net.yakclient.client.boot.internal.jpm
 
 import net.yakclient.client.boot.archive.ArchiveHandle
 import net.yakclient.client.util.openStream
+import net.yakclient.client.util.readBytes
 import net.yakclient.client.util.readInputStream
+import net.yakclient.client.util.resource.ProvidedResource
 import java.io.InputStream
 import java.lang.module.ModuleReader
 import java.lang.module.ModuleReference
@@ -51,7 +53,13 @@ public class JpmHandle(
 
             return (overrides[name]
                 ?: cache[name]
-                ?: reader.find(name).orElse(null)?.let { JpmEntryRef(name, it) }?.also { cache[name] = it })
+                ?: reader.find(name).orElse(null)?.let {
+                    ArchiveHandle.Entry(
+                        name,
+                        ProvidedResource(it, it.readBytes()),
+                        name.endsWith("/") // How they do it in the java source code, wish there could be a better solution :(
+                    )
+                }?.also { cache[name] = it })
                 ?.takeUnless { removes.contains(it.name) }
         }
 
@@ -59,12 +67,12 @@ public class JpmHandle(
             list().iterator()
         }.mapNotNull { of(it) }
 
-        override fun find(name: String): Optional<URI> = Optional.ofNullable(of(name)?.asUri)
+        override fun find(name: String): Optional<URI> = Optional.ofNullable(of(name)?.resource?.uri)
 
-        override fun open(name: String): Optional<InputStream> = Optional.ofNullable(of(name)?.asInputStream)
+        override fun open(name: String): Optional<InputStream> = Optional.ofNullable(of(name)?.resource?.open())
 
         override fun read(name: String): Optional<ByteBuffer> =
-            Optional.ofNullable(of(name)?.asBytes?.let { ByteBuffer.wrap(it) })
+            Optional.ofNullable(of(name)?.resource?.open()?.readInputStream()?.let { ByteBuffer.wrap(it) })
 
         override fun list(): Stream<String> {
             ensureOpen()
@@ -84,13 +92,13 @@ public class JpmHandle(
         }
     }
 
-    private data class JpmEntryRef(
-        override val name: String,
-        override val asUri: URI
-    ) : ArchiveHandle.Entry() {
-        override val asInputStream: InputStream
-            get() = asUri.openStream()
-        override val asBytes: ByteArray
-            get() = asInputStream.readInputStream()
-    }
+//    private data class JpmEntryRef(
+//        override val name: String,
+//        override val asUri: URI
+//    ) : ArchiveHandle.Entry() {
+//        override val asInputStream: InputStream
+//            get() = asUri.openStream()
+//        override val asBytes: ByteArray
+//            get() = asInputStream.readInputStream()
+//    }
 }

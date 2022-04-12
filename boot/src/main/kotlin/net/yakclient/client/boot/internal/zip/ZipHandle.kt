@@ -2,6 +2,7 @@ package net.yakclient.client.boot.internal.zip
 
 import net.yakclient.client.boot.archive.ArchiveHandle
 import net.yakclient.client.util.readInputStream
+import net.yakclient.client.util.resource.LocalResource
 import java.io.InputStream
 import java.net.URI
 import java.util.jar.JarFile
@@ -35,22 +36,15 @@ public class ZipHandle(
         override fun of(name: String): ArchiveHandle.Entry? {
             ensureOpen()
 
-            val entry: ZipEntry? = zip.getEntry(name)
+            val entry = zip.getJarEntry(name) ?: return null
 
-            return (overrides[name] ?: if (entry != null) object : ArchiveHandle.Entry() {
-                override val name: String by entry::name
-                override val asUri: URI = URI.create("jar:${location}!/$name")
-                override val asBytes: ByteArray
-                    get() {
-                        ensureOpen()
-                        return zip.getInputStream(entry).readInputStream()
-                    }
-                override val asInputStream: InputStream
-                    get() {
-                        ensureOpen()
-                        return zip.getInputStream(entry)
-                    }
-            } else null)?.takeUnless { removes.contains(name) }
+            val uri = URI.create("jar:${location}!/${entry.realName}")
+
+            return overrides[name] ?: ArchiveHandle.Entry(
+                entry.name,
+                LocalResource(uri),
+                entry.isDirectory
+            ).takeUnless { removes.contains(name) }
         }
 
         override fun entries(): Sequence<ArchiveHandle.Entry> = zip.entries().asSequence().mapNotNull {

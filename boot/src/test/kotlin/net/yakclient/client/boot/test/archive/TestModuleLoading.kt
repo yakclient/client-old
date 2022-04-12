@@ -83,6 +83,13 @@ class TestModuleLoading {
         zip.close()
 
         val entry = zip.getEntry("testFile")
+        entry.isDirectory
         println(zip.getInputStream(entry).readAllBytes().toString(Charsets.UTF_8))
+    }
+
+    @Test
+    fun `Test local URI`() {
+        val file = javaClass.getResource("/testFile")!!
+        println(file.toURI().host)
     }
 }

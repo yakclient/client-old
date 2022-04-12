@@ -6,19 +6,18 @@ import java.util.*
 public enum class OsType {
     OS_X,
     WINDOWS,
-    UNIX,
-    UNKNOWN;
+    UNIX;
 
     public companion object {
-        public fun get(): OsType {
+        public val type: OsType = run {
             val os = System.getProperty("os.name").lowercase(Locale.ENGLISH)
-            return when {
-                os.contains("win") -> OsType.WINDOWS
-                os.contains("mac") -> OsType.OS_X
-                os.contains("solaris") || os.contains("sunos") -> OsType.UNIX
-                os.contains("linux") -> OsType.UNIX
-                os.contains("unix") -> OsType.UNIX
-                else -> OsType.UNKNOWN
+            when {
+                os.contains("win") -> WINDOWS
+                os.contains("mac") -> OS_X
+                os.contains("solaris") || os.contains("sunos") -> UNIX
+                os.contains("linux") -> UNIX
+                os.contains("unix") -> UNIX
+                else -> throw IllegalStateException("Unsupported OS: $os")
             }
         }
     }

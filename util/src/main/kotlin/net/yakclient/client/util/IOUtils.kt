@@ -1,6 +1,7 @@
 package net.yakclient.client.util
 
 import java.io.*
+import java.nio.ByteBuffer
 
 public fun InputStream.readInputStream(): ByteArray = ByteArrayOutputStream().use { outputStream ->
     val buffer = ByteArrayOutputStream()
@@ -16,4 +17,8 @@ public fun InputStream.readInputStream(): ByteArray = ByteArrayOutputStream().us
     buffer.toByteArray()
 }
 
-
+public fun ByteBuffer.toBytes() : ByteArray {
+    val bytes = ByteArray(this.remaining())
+    get(bytes)
+    return bytes
+}

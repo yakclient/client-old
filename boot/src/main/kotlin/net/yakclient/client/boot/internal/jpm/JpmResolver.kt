@@ -38,23 +38,12 @@ internal class JpmResolver : ArchiveResolver<JpmHandle> {
                 .all { r ->
                     fun Configuration.provides(name: String): Boolean =
                         modules().any { it.name() == name } || parents().any { it.provides(name) }
-//
-//                    fun ResolvedArchive.provides(name: String): Boolean = if (this is ResolvedJpmArchive) {
-//                        module.name == name || this.configuration.provides(name)
-//                    } else {
-//                        false
-//                    }
-//                        ref.descriptor().provides().any { it.name() == name } || parents.any { it.provides(name) }
 
                     parents.filterIsInstance<ResolvedJpm>().any {
                         it.module.name == r.name() || it.configuration.provides(r.name())
                     } || ModuleLayer.boot().configuration().provides(r.name()) || refs.any {
                         it.descriptor().name() == r.name()
                     }
-
-//                    parents.any { d -> r.name() == d.name || (d as ResolvedJpmArchive).configuration.provides(r.name()) }
-//                            || ModuleLayer.boot().modules().any { d -> r.name() == d.name }
-//                            || refs.any { d -> d.descriptor().name() == r.name() }
                 }) {
             "A Dependency of ${ref.descriptor().name()} is not in the graph!"
         }
@@ -123,7 +112,7 @@ internal class JpmResolver : ArchiveResolver<JpmHandle> {
 //
                 target.putNextEntry(entry)
 
-                val eIn = e.asInputStream
+                val eIn = e.resource.open()
 
                 //Stolen from https://stackoverflow.com/questions/1281229/how-to-use-jaroutputstream-to-create-a-jar-file
                 val buffer = ByteArray(1024)

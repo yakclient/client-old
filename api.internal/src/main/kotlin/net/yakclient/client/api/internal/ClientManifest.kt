@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import java.net.URI
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-internal data class ClientManifest(
+public data class ClientManifest(
     val mainClass: String,
     val libraries: List<ClientLibrary>,
     val downloads: Map<ManifestDownloadType, McArtifact>,
@@ -15,7 +15,7 @@ internal data class ClientManifest(
     val version: String,
 )
 
-internal enum class ManifestDownloadType {
+public enum class ManifestDownloadType {
     @JsonProperty("client")
     CLIENT,
 
@@ -30,7 +30,7 @@ internal enum class ManifestDownloadType {
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-internal data class ClientLibrary(
+public data class ClientLibrary(
     val name: String,
     val downloads: LibraryDownloads,
     @JsonProperty("extract")
@@ -39,12 +39,12 @@ internal data class ClientLibrary(
     val extract : LibraryExtracts = _extract ?: LibraryExtracts(listOf())
 }
 
-internal data class LibraryExtracts(
+public data class LibraryExtracts(
     val exclude: List<String>
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-internal data class LibraryDownloads(
+public data class LibraryDownloads(
     val artifact: McArtifact,
     @JsonProperty("classifiers")
     private val _classifiers: Map<ClassifierType, McArtifact>?
@@ -55,13 +55,13 @@ internal data class LibraryDownloads(
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-internal data class McArtifact(
+public data class McArtifact(
     val url: URI,
     @JsonProperty("sha1")
     val checksum: String
 )
 
-internal enum class ClassifierType(name: String) {
+public enum class ClassifierType(name: String) {
     @JsonProperty("javadoc")
     JAVADOC("javadoc"),
 

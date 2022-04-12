@@ -1,6 +1,7 @@
 package net.yakclient.client.boot.loader
 
 import net.yakclient.client.boot.archive.ArchiveHandle
+import net.yakclient.client.util.readInputStream
 import java.net.URI
 import java.net.URL
 import java.nio.ByteBuffer
@@ -10,7 +11,7 @@ import java.security.cert.Certificate
 import java.util.*
 import kotlin.collections.HashSet
 
-public class ClConglomerate(
+public open class ClConglomerate(
     parent: ClassLoader,
     private val providers: List<ConglomerateProvider>
 ) : ClassLoader(parent), ClComponent {
@@ -44,7 +45,7 @@ public class ClConglomerate(
     }
 
     override fun findResource(name: String): URL? =
-        providers.firstNotNullOfOrNull { it.provideResource(name) }?.toURL()
+        resourceMap[name]?.provideResource(name)?.toURL()
 
     override fun findResource(mn: String, name: String): URL? = findResource(name)
 }
@@ -71,7 +72,7 @@ public open class ArchiveConglomerateProvider(
         .filterNotTo(HashSet()) { it.endsWith(".class") }
 
     override fun provideClass(name: String): ByteBuffer? =
-        archive.reader[name.dotClassFormat]?.asBytes?.let(ByteBuffer::wrap)// ByteBuffer.wrap()
+        archive.reader[name.dotClassFormat]?.resource?.open()?.readInputStream()?.let(ByteBuffer::wrap)// ByteBuffer.wrap()
 
-    override fun provideResource(name: String): URI? = archive.reader[name]?.asUri
+    override fun provideResource(name: String): URI? = archive.reader[name]?.resource?.uri
 }

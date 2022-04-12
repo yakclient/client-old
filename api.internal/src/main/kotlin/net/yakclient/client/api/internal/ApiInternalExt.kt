@@ -16,8 +16,14 @@ import net.yakclient.client.util.*
 import net.yakclient.client.util.resource.SafeResource
 import java.nio.file.Path
 import java.util.*
+import kotlin.io.use
 
 public class ApiInternalExt : Extension() {
+//
+//    public companion object {
+//        public val manifest = ObjectMapper().registerModule(KotlinModule())
+//            .readValue<ClientManifest>(YakClient.settings.clientJsonFile.toFile())
+//    }
 
     private infix fun SafeResource.copyToBlocking(to: Path): Path = runBlocking { this@copyToBlocking copyTo to }
 
@@ -98,25 +104,57 @@ public class ApiInternalExt : Extension() {
             )
         }
 
-        val loader = ClConglomerate(this.loader, (dependencies + mcReference).map(::ArchiveConglomerateProvider))
+        val nativeEnding = when (OsType.type) {
+            OsType.UNIX -> "so"
+            OsType.OS_X -> "dylib"
+            OsType.WINDOWS -> "dll"
+        }
+
+        val nativeJars = manifest.libraries.mapNotNullBlocking { lib ->
+            val (_, artifact, version) = lib.name.split(':')
+
+            val nativeClassifier = lib.downloads.classifiers.keys.firstOrNull {
+                val t = OsType.type
+                when {
+                    t == OsType.OS_X && it.equalsAny(ClassifierType.NATIVES_MACOS, ClassifierType.NATIVES_OSX) -> true
+                    t == OsType.WINDOWS && it == ClassifierType.NATIVES_WINDOWS -> true
+                    t == OsType.UNIX && it == ClassifierType.NATIVES_LINUX -> true
+                    else -> false
+                }
+            } ?: return@mapNotNullBlocking null
+
+            lib.downloads.classifiers[nativeClassifier]?.let { native ->
+                val path = YakClient.settings.tempPath resolve "$artifact-$version-${nativeClassifier.name}.jar"
+
+                native.url.toResource(HexFormat.of().parseHex(native.checksum)) copyTo path
+            }
+        }
+        val nativeFiles = nativeJars.mapBlocking { path ->
+            ArchiveUtils.find(path, ArchiveUtils.zipFinder).use { handle ->
+                handle.reader.entries()
+                    .filter { !it.isDirectory }
+                    .filter { it.name.endsWith(nativeEnding) }
+                    .toList()
+                    .mapNotBlocking {
+                        it.resource copyTo (nativesPath resolve it.name)
+                    }
+            }
+        }
+
+        val loader = MinecraftLoader(
+            this.loader,
+            (dependencies + mcReference).map(::ArchiveConglomerateProvider),
+            nativeFiles.flatMap { it }.associateBy { it.fileName.toString().removePrefix("lib").removeSuffix(".$nativeEnding") })
 
         val minecraft = resolve(dependencies + mcReference) { loader }
 
-        val nativeClassifier = when (OsType.get()) {
-            OsType.OS_X -> ClassifierType.NATIVES_MACOS
-            OsType.WINDOWS -> ClassifierType.NATIVES_WINDOWS
-            OsType.UNIX -> ClassifierType.NATIVES_LINUX
-            else -> throw IllegalStateException("Unknown OS type: $this")
-        }
+//        val nativeClassifier = when (OsType.get()) {
+//            OsType.OS_X -> ClassifierType.NATIVES_MACOS
+//            OsType.WINDOWS -> ClassifierType.NATIVES_WINDOWS
+//            OsType.UNIX -> ClassifierType.NATIVES_LINUX
+//            else -> throw IllegalStateException("Unknown OS type: $this")
+//        }
 
-        manifest.libraries.forEach { lib ->
-            val (group, artifact, version) = lib.name.split(':')
-
-            lib.downloads.classifiers[nativeClassifier]?.let { native ->
-                val path = nativesPath resolve "$artifact-$version-$nativeClassifier.jar"
-                native.url.toResource(HexFormat.of().parseHex(native.checksum))
-            }
-        }
 
         val settings = ExtensionLoader.loadSettings(ext)
 

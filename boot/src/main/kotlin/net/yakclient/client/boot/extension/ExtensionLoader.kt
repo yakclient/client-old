@@ -37,7 +37,7 @@ public object ExtensionLoader {
 
     @JvmStatic
     public fun loadSettings(ref: ArchiveHandle): BasicExtensionSettings =
-        ref.reader["ext-settings.conf"]?.asUri?.toConfig()?.extract<BasicExtensionSettings>("loader")
+        ref.reader["ext-settings.conf"]?.resource?.uri?.toConfig()?.extract<BasicExtensionSettings>("loader")
             ?: throw IllegalStateException("Failed to find or read ext-settings.conf file in module: ${ref.location.path}!")
 
     @JvmStatic

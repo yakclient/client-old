@@ -9,7 +9,9 @@ public fun Path.make(): Boolean =
     if (Files.isDirectory(this)) toFile().mkdirs()
     else {
         parent.toFile().mkdirs()
-        toFile().createNewFile()
+        val it = runCatching { toFile().createNewFile() }
+        if (it.isFailure) println(this)
+        it.getOrThrow()
     }
 
 public fun Path.toUrl(): URL = toUri().toURL()
