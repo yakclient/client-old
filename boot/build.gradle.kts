@@ -25,9 +25,19 @@ application {
     mainModule.set("yakclient.client.boot")
 
     applicationDefaultJvmArgs = listOf(
-        "--add-reads", "kotlin.stdlib=kotlinx.coroutines.core.jvm",
-        "--add-exports", "kotlin.reflect/kotlin.reflect.jvm.internal=com.fasterxml.jackson.kotlin",
-        "-Xms512m", "-Xmx2G",
+        "--add-reads",
+        "kotlin.stdlib=kotlinx.coroutines.core.jvm",
+        "--add-exports",
+        "kotlin.reflect/kotlin.reflect.jvm.internal=com.fasterxml.jackson.kotlin",
+        "-Xms512m",
+        "-Xmx2G",
+        "-XX:+UnlockExperimentalVMOptions",
+        "-XX:+UseG1GC",
+        "-XX:G1NewSizePercent=20",
+        "-XX:G1ReservePercent=20",
+        "-XX:MaxGCPauseMillis=50",
+        "-XX:G1HeapRegionSize=32M"
+
 //        "-Djava.library.path=${property("native.path")}",
 //        "--add-opens", "java.base/java.lang=yak.minecraft"
     )

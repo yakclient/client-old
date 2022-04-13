@@ -1,6 +1,5 @@
 package net.yakclient.client.api.internal
 
-import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -34,11 +33,30 @@ public data class ClientLibrary(
     val name: String,
     val downloads: LibraryDownloads,
     @JsonProperty("extract")
-    private val _extract : LibraryExtracts?
+    private val _extract : LibraryExtracts?,
+    val natives: Map<String, String> = HashMap(),
+    val rules: List<LibraryRule> = ArrayList()
 ) {
     val extract : LibraryExtracts = _extract ?: LibraryExtracts(listOf())
 }
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+public data class LibraryRule(
+    val action: LibraryRuleAction,
+    @JsonProperty("os")
+    private val osProperties: Map<String, String> = HashMap()
+) {
+    val osName: String? = osProperties["name"]
+}
+
+public enum class LibraryRuleAction{
+    @JsonProperty("allow")
+    ALLOW,
+    @JsonProperty("disallow")
+    DISALLOW
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public data class LibraryExtracts(
     val exclude: List<String>
 )
@@ -47,10 +65,10 @@ public data class LibraryExtracts(
 public data class LibraryDownloads(
     val artifact: McArtifact,
     @JsonProperty("classifiers")
-    private val _classifiers: Map<ClassifierType, McArtifact>?
+    val classifiers: Map<String, McArtifact> = HashMap()
 ) {
-    @JsonIgnore
-    val classifiers: Map<ClassifierType, McArtifact> = _classifiers ?: mapOf()
+//    @JsonIgnore
+//    val classifiers: Map<String, McArtifact> = _classifiers ?: mapOf()
 }
 
 
@@ -61,22 +79,22 @@ public data class McArtifact(
     val checksum: String
 )
 
-public enum class ClassifierType(name: String) {
-    @JsonProperty("javadoc")
-    JAVADOC("javadoc"),
-
-    @JsonProperty("natives-linux")
-    NATIVES_LINUX("natives-linux"),
-
-    @JsonProperty("natives-macos")
-    NATIVES_MACOS("natives-macos"),
-
-    @JsonProperty("natives-osx")
-    NATIVES_OSX("natives-osx"),
-
-    @JsonProperty("natives-windows")
-    NATIVES_WINDOWS("natives-windows"),
-
-    @JsonProperty("sources")
-    SOURCES("sources")
-}
+//public enum class ClassifierType(name: String) {
+//    @JsonProperty("javadoc")
+//    JAVADOC("javadoc"),
+//
+//    @JsonProperty("natives-linux")
+//    NATIVES_LINUX("natives-linux"),
+//
+//    @JsonProperty("natives-macos")
+//    NATIVES_MACOS("natives-macos"),
+//
+//    @JsonProperty("natives-osx")
+//    NATIVES_OSX("natives-osx"),
+//
+//    @JsonProperty("natives-windows")
+//    NATIVES_WINDOWS("natives-windows"),
+//
+//    @JsonProperty("sources")
+//    SOURCES("sources")
+//}

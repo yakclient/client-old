@@ -16,14 +16,9 @@ import net.yakclient.client.util.resource.SafeResource
 import java.nio.file.Path
 import java.util.*
 import java.util.logging.Level
+import kotlin.collections.HashSet
 
 public class ApiInternalExt : Extension() {
-//
-//    public companion object {
-//        public val manifest = ObjectMapper().registerModule(KotlinModule())
-//            .readValue<ClientManifest>(YakClient.settings.clientJsonFile.toFile())
-//    }
-
     private infix fun SafeResource.copyToBlocking(to: Path): Path = runBlocking { this@copyToBlocking copyTo to }
 
     override fun onLoad() {
@@ -40,44 +35,6 @@ public class ApiInternalExt : Extension() {
             client.url.toResource(HexFormat.of().parseHex(client.checksum)).copyToBlocking(minecraftPath)
         }
 
-        // TODO add support for excluding based on the client manifest
-//        val repoSettings = RepositorySettings(RepositoryType.MAVEN, "https://libraries.minecraft.net")
-//        val internalRepo = MavenRepositoryHandler(
-//            repoSettings,
-//            MojangRepositoryHandler
-//        )
-
-//        val descriptorsToReplace = mapOf(
-//
-//        )
-
-        // The whole point of this is make sure that the minecraft repo is included as a possible repository since the poms of the actual artifacts don't do that...
-//        val repository = object : RepositoryHandler<MavenDescriptor> by internalRepo {
-//            override val settings: RepositorySettings = repoSettings
-//
-//            override fun find(desc: MavenDescriptor): Dependency? =
-//                internalRepo.find(desc)?.let {
-//                    Dependency(
-//                        it.jar,
-//                        it.dependants.mapTo(HashSet()) { d ->
-//                            Dependency.Transitive(
-//                                d.possibleRepos + repoSettings,
-//                                d.desc
-//                            )
-//                        },
-//                        it.desc
-//                    )
-//                }
-//        }
-
-//        val
-
-//        val depLoader = DependencyGraph.ofRepository(MojangRepositoryHandler)
-//        val mcDeps: List<ResolvedArchive> = manifest.libraries.map { depLoader.load(it.name)!! }
-
-//        val libs = DependencyGraph.ofRepository(RepositorySettings(type = MAVEN, options = mapOf(URL_OPTION_NAME to "https://libraries.minecraft.net")))
-
-
         val overriddenNames = hashMapOf<String, String>()
 
         val libNames: Map<String, String> = LazyMap(overriddenNames) { n ->
@@ -90,12 +47,40 @@ public class ApiInternalExt : Extension() {
 
         val mcReference = ArchiveUtils.find(minecraftPath, zipFinder)
 
-        val dependencies = manifest.libraries.mapBlocking {
+        val dependencies = manifest.libraries
+            .filter { lib ->
+                fun String.osNameToType(): OsType? = when (this) {
+                    "linux" -> OsType.UNIX
+                    "windows" -> OsType.WINDOWS
+                    "osx" -> OsType.OS_X
+                    else -> null
+                }
+                val allTypes = setOf(
+                    OsType.OS_X,
+                    OsType.WINDOWS,
+                    OsType.UNIX
+                )
+
+                val allowableOperatingSystems = if (lib.rules.isEmpty()) allTypes.toMutableSet() else lib.rules
+                    .filter { it.action == LibraryRuleAction.ALLOW }
+                    .flatMapTo(HashSet()) {
+
+                        it.osName?.osNameToType()?.let(::listOf) ?: allTypes
+                    }
+
+                lib.rules.filter { it.action == LibraryRuleAction.DISALLOW }.forEach {
+                    it.osName?.osNameToType()?.let(allowableOperatingSystems::remove)
+                }
+
+                allowableOperatingSystems.contains(OsType.type)
+            }
+
+        val dependencyRefs = dependencies.mapBlocking {
             val path = libPath resolve "${libNames[it.name]}.jar"
 
 
             if (path.make()) {
-                logger.log(Level.INFO, "Downloading minecraft dependency: ${it.name}")
+                logger.log(Level.INFO, "Downloading minecraft dependency: '${it.name}'")
 
                 it.downloads.artifact.url.toResource(
                     HexFormat.of().parseHex(it.downloads.artifact.checksum)
@@ -108,60 +93,34 @@ public class ApiInternalExt : Extension() {
             )
         }
 
-        val nativeEnding = when (OsType.type) {
-            OsType.UNIX -> "so"
-            OsType.OS_X -> "dylib"
-            OsType.WINDOWS -> "dll"
+        fun OsType.toOsName(): String = when (this) {
+            OsType.WINDOWS -> "windows"
+            OsType.OS_X -> "osx"
+            OsType.UNIX -> "linux"
         }
 
-        val nativeJars = manifest.libraries.mapNotNullBlocking { lib ->
+        val nativeHandles = dependencies.mapNotNullBlocking { lib ->
             val (_, artifact, version) = lib.name.split(':')
 
-            val nativeClassifier = lib.downloads.classifiers.keys.firstOrNull {
-                val t = OsType.type
-                when {
-                    t == OsType.OS_X && it.equalsAny(ClassifierType.NATIVES_MACOS, ClassifierType.NATIVES_OSX) -> true
-                    t == OsType.WINDOWS && it == ClassifierType.NATIVES_WINDOWS -> true
-                    t == OsType.UNIX && it == ClassifierType.NATIVES_LINUX -> true
-                    else -> false
-                }
-            } ?: return@mapNotNullBlocking null
+            val native = lib.natives[OsType.type.toOsName()] ?: return@mapNotNullBlocking null
+            val classifier = lib.downloads.classifiers[native] ?: return@mapNotNullBlocking null
 
-            lib.downloads.classifiers[nativeClassifier]?.let { native ->
-                val path = YakClient.settings.tempPath resolve "$artifact-$version-${nativeClassifier.name}.jar"
+            val jarName = "$artifact-$version-${native}.jar"
+            logger.log(Level.INFO, "Downloading minecraft native library : '$jarName'")
 
-                logger.log(Level.INFO, "Downloading minecraft native for artifact: ${lib.name}")
+            val path = nativesPath resolve jarName
 
-                native.url.toResource(HexFormat.of().parseHex(native.checksum)) copyTo path
-            }
-        }
-        val nativeFiles = nativeJars.mapBlocking { path ->
-            ArchiveUtils.find(path, zipFinder).use { handle ->
-                handle.reader.entries()
-                    .filter { !it.isDirectory }
-                    .filter { it.name.endsWith(nativeEnding) }
-                    .toList()
-                    .mapNotBlocking {
-                        it.resource copyTo (nativesPath resolve it.name)
-                    }
-            }
+            classifier.url.toResource(HexFormat.of().parseHex(classifier.checksum)) copyTo path
+
+            ArchiveUtils.find(path, zipFinder)
         }
 
         val loader = MinecraftLoader(
             this.loader,
-            (dependencies + mcReference).map(::ArchiveConglomerateProvider),
-            nativeEnding,
-            nativeFiles.flatMap { it }.associateBy { it.fileName.toString() })
+            (dependencyRefs + mcReference + nativeHandles).map(::ArchiveConglomerateProvider),
+        )
 
-        val minecraft = resolve(dependencies + mcReference) { loader }
-
-//        val nativeClassifier = when (OsType.get()) {
-//            OsType.OS_X -> ClassifierType.NATIVES_MACOS
-//            OsType.WINDOWS -> ClassifierType.NATIVES_WINDOWS
-//            OsType.UNIX -> ClassifierType.NATIVES_LINUX
-//            else -> throw IllegalStateException("Unknown OS type: $this")
-//        }
-
+        val minecraft = resolve(dependencyRefs + mcReference) { loader }
 
         val settings = ExtensionLoader.loadSettings(ext)
 
