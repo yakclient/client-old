@@ -2,7 +2,6 @@
 /out/
 *.iml
 **/build
-**/gradle
 .gradle
 out
 gradle.properties

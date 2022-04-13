@@ -38,8 +38,7 @@ application {
         "-XX:MaxGCPauseMillis=50",
         "-XX:G1HeapRegionSize=32M",
         "-XstartOnFirstThread"
-
-//        "-Djava.library.path=${property("native.path")}",
-//        "--add-opens", "java.base/java.lang=yak.minecraft"
     )
 }
+
+tasks.run.get().workingDir = File("workingDir")
