@@ -60,7 +60,7 @@ public object YakClient : Extension() {
 private const val SETTINGS_NAME = "settings.conf"
 
 public fun main(args: Array<String>) {
-    val parser = ArgParser("yakclient", skipExtraArguments = true)
+    val parser = ArgParser("yakclient")
 
     val yakDirectory by parser.option(PathArgument, "yakdirectory", "d").required()
 

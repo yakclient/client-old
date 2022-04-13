@@ -11,6 +11,6 @@ public class MinecraftExtension : Extension() {
 
         logger.log(Level.INFO, "Starting minecraft")
         val startClass = this::class.java.classLoader.loadClass("net.minecraft.client.main.Main")
-        startClass.getMethod("main", Array<String>::class.java).invoke(null, arrayOf("--accessToken", "", "--version","1.18.1"))
+        startClass.getMethod("main", Array<String>::class.java).invoke(null, arrayOf("--accessToken", "", "--version","1.18.2"))
     }
 }

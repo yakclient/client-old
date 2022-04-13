@@ -27,13 +27,8 @@ application {
     applicationDefaultJvmArgs = listOf(
         "--add-reads", "kotlin.stdlib=kotlinx.coroutines.core.jvm",
         "--add-exports", "kotlin.reflect/kotlin.reflect.jvm.internal=com.fasterxml.jackson.kotlin",
-        "-Xms512m", "-Xmx1G",
+        "-Xms512m", "-Xmx2G",
 //        "-Djava.library.path=${property("native.path")}",
 //        "--add-opens", "java.base/java.lang=yak.minecraft"
     )
-}
-
-modularity {
-    this.patchModule("ktor.client.core.jvm", "ktor-client-core-jvm-2.0.0-beta-1.jar")
-    this.patchModule("ktor.client.core.jvm", "ktor-client-cio-jvm-2.0.0-beta-1.jar")
 }

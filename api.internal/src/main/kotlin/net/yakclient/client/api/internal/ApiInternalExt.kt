@@ -11,12 +11,11 @@ import net.yakclient.client.boot.archive.ArchiveUtils.zipFinder
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
-import net.yakclient.client.boot.loader.ClConglomerate
 import net.yakclient.client.util.*
 import net.yakclient.client.util.resource.SafeResource
 import java.nio.file.Path
 import java.util.*
-import kotlin.io.use
+import java.util.logging.Level
 
 public class ApiInternalExt : Extension() {
 //
@@ -94,9 +93,14 @@ public class ApiInternalExt : Extension() {
         val dependencies = manifest.libraries.mapBlocking {
             val path = libPath resolve "${libNames[it.name]}.jar"
 
-            if (path.make()) it.downloads.artifact.url.toResource(
-                HexFormat.of().parseHex(it.downloads.artifact.checksum)
-            ) copyTo path
+
+            if (path.make()) {
+                logger.log(Level.INFO, "Downloading minecraft dependency: ${it.name}")
+
+                it.downloads.artifact.url.toResource(
+                    HexFormat.of().parseHex(it.downloads.artifact.checksum)
+                ) copyTo path
+            }
 
             ArchiveUtils.find(
                 path,
@@ -126,11 +130,13 @@ public class ApiInternalExt : Extension() {
             lib.downloads.classifiers[nativeClassifier]?.let { native ->
                 val path = YakClient.settings.tempPath resolve "$artifact-$version-${nativeClassifier.name}.jar"
 
+                logger.log(Level.INFO, "Downloading minecraft native for artifact: ${lib.name}")
+
                 native.url.toResource(HexFormat.of().parseHex(native.checksum)) copyTo path
             }
         }
         val nativeFiles = nativeJars.mapBlocking { path ->
-            ArchiveUtils.find(path, ArchiveUtils.zipFinder).use { handle ->
+            ArchiveUtils.find(path, zipFinder).use { handle ->
                 handle.reader.entries()
                     .filter { !it.isDirectory }
                     .filter { it.name.endsWith(nativeEnding) }
@@ -144,7 +150,8 @@ public class ApiInternalExt : Extension() {
         val loader = MinecraftLoader(
             this.loader,
             (dependencies + mcReference).map(::ArchiveConglomerateProvider),
-            nativeFiles.flatMap { it }.associateBy { it.fileName.toString().removePrefix("lib").removeSuffix(".$nativeEnding") })
+            nativeEnding,
+            nativeFiles.flatMap { it }.associateBy { it.fileName.toString() })
 
         val minecraft = resolve(dependencies + mcReference) { loader }
 

@@ -56,7 +56,8 @@ public object ExtensionLoader {
         ref: ArchiveHandle,
         parent: Extension,
         settings: ExtensionSettings = loadSettings(ref),
-        dependencies: List<ResolvedArchive> = loadDependencies(settings)
+        dependencies: List<ResolvedArchive> = loadDependencies(settings),
+        loader : ClassLoader = ArchiveLoader(parent.ref.classloader, dependencies.map(::ArchiveComponent), ref)
     ): Extension {
         check(ref is JpmHandle) { "ExtensionLoader only supports JPM archives!" }
 
@@ -64,8 +65,6 @@ public object ExtensionLoader {
             Level.WARNING,
             "Extension: '${settings.name}' contains a repository referencing maven local! Make sure this is removed in all production builds."
         )
-
-        val loader = ArchiveLoader(parent.ref.classloader, dependencies.map(::ArchiveComponent), ref)
 
         val archive: ResolvedArchive =
             ArchiveUtils.resolve(ref, loader, ArchiveUtils.jpmResolver, dependencies + parent.ref)
