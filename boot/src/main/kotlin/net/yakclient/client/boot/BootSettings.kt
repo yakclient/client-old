@@ -4,7 +4,7 @@ import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.boot.extension.ExtensionSettings
 import java.io.File
 import java.nio.file.Path
-import net.yakclient.client.util.resolve
+import net.yakclient.common.util.resolve
 
 public data class BootSettings(
     val mcVersion: String,

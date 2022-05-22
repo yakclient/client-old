@@ -5,27 +5,28 @@ import io.github.config4k.extract
 import io.github.config4k.registerCustomType
 import kotlinx.cli.ArgParser
 import kotlinx.cli.required
+import net.yakclient.archives.ArchiveHandle
+import net.yakclient.archives.ResolvedArchive
+import net.yakclient.archives.impl.jpm.JpmHandle
+import net.yakclient.archives.impl.jpm.ResolvedJpm
 import net.yakclient.client.boot.YakClient.dependencyResolver
-import net.yakclient.client.boot.archive.ArchiveHandle
-import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.dependency.ArchiveDependencyResolver
 import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.dependency.DependencyResolutionFallBack
 import net.yakclient.client.boot.dependency.DependencyResolver
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
-import net.yakclient.client.boot.internal.jpm.JpmHandle
-import net.yakclient.client.boot.internal.jpm.ResolvedJpm
 import net.yakclient.client.boot.maven.MAVEN_CENTRAL
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.*
-import net.yakclient.client.util.resource.SafeResource
+import net.yakclient.client.util.PathArgument
+import net.yakclient.client.util.UriCustomType
+import net.yakclient.common.util.*
+import net.yakclient.common.util.resource.SafeResource
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.logging.Level
 import kotlin.system.exitProcess
-
 
 public object YakClient : Extension() {
     internal var innited: Boolean = false
@@ -36,8 +37,7 @@ public object YakClient : Extension() {
             override fun resolve(ref: ArchiveHandle, dependants: List<ResolvedArchive>): ResolvedArchive? {
                 fun moduleByName(name: String): ResolvedArchive? = ModuleLayer.boot().modules().find {
                     it.name == name
-                }?.let { ResolvedJpm(it) }
-
+                }?.let(::ResolvedJpm)
                 return if (ref is JpmHandle) when (ref.descriptor().name()) {
                     "javaee.api" -> moduleByName("java.xml")
                     else -> moduleByName(ref.descriptor().name())
@@ -74,7 +74,7 @@ public fun main(args: Array<String>) {
 
     if (run.isFailure) {
         YakClient.logger.log(Level.INFO, "Error occurred, Exiting gracefully")
-        (run.exceptionOrNull()!!).printStackTrace()
+        run.exceptionOrNull()!!.printStackTrace(System.err)
     } else YakClient.logger.log(Level.INFO, "Successfully Quit")
 
 }
@@ -99,9 +99,7 @@ public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
     YakClient.settings.tempPath.deleteAll()
 
     YakClient.init(
-        ResolvedJpm(
-            YakClient::class.java.module,
-        ),
+        ResolvedJpm(YakClient::class.java.module),
         YakClient.settings,
         null
     )
@@ -118,23 +116,12 @@ public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
         dl load "org.jetbrains.kotlinx:kotlinx-coroutines-core:2.0.0-beta-1"
         dl load "org.jetbrains.kotlin:kotlin-reflect:1.6.0"
         dl load "io.github.config4k:config4k:0.4.2"
-        dl load "com.typesafe:config:1.4.1"
+//        dl load "com.typesafe:config:1.4.1"
         dl load "com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6"
         dl load "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.6"
         dl load "org.jetbrains.kotlin:kotlin-stdlib-common:2.0.0-beta-1"
-//        dl load "org.apache.httpcomponents:httpclient:4.5.13"
         dl load "io.ktor:ktor-client-cio:2.0.0"
-
-
-//      dl load "io.ktor:ktor-client-core-jvm:1.3.2-1.4-M2"
-
-//       val client = HttpClient(CIO) {
-//           expectSuccess = false
-//       }
-//
-////        val req = client.get("https://ktor.io/")
-//        println(client.engine)
-
+        dl load "net.yakclient:archives:1.0-SNAPSHOT"
     }
 }
 

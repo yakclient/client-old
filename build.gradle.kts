@@ -17,12 +17,14 @@ tasks.wrapper {
 
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin="org.javamodularity.moduleplugin")
+    apply(plugin = "org.javamodularity.moduleplugin")
 
     repositories {
-        mavenLocal()
-
         mavenCentral()
+        maven {
+            isAllowInsecureProtocol = true
+            url = uri("http://repo.yakclient.net/snapshots")
+        }
     }
 
     tasks.compileKotlin {
@@ -52,6 +54,6 @@ subprojects {
 
     tasks.test {
         useJUnitPlatform()
-        jvmArgs = listOf("--add-reads","kotlin.stdlib=kotlinx.coroutines.core.jvm")
+        jvmArgs = listOf("--add-reads", "kotlin.stdlib=kotlinx.coroutines.core.jvm")
     }
 }

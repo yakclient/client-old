@@ -1,8 +1,8 @@
 package net.yakclient.client.boot.extension
 
+import net.yakclient.archives.ResolvedArchive
 import net.yakclient.client.boot.exception.AlreadyInitializedException
-import net.yakclient.client.boot.archive.ResolvedArchive
-import net.yakclient.client.util.immutableLateInit
+import net.yakclient.common.util.immutableLateInit
 import java.util.logging.Logger
 import kotlin.properties.Delegates
 

@@ -11,9 +11,9 @@ import net.yakclient.client.boot.init
 import net.yakclient.client.boot.maven.MAVEN
 import net.yakclient.client.boot.maven.URL_OPTION_NAME
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.child
-import net.yakclient.client.util.parent
-import net.yakclient.client.util.workingDir
+import net.yakclient.common.util.child
+import net.yakclient.common.util.parent
+import net.yakclient.common.util.workingDir
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 

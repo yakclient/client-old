@@ -4,25 +4,28 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import kotlinx.coroutines.runBlocking
+import net.yakclient.archive.mapper.ClassTypeDescriptor
+import net.yakclient.archive.mapper.Parsers
+import net.yakclient.archives.Archives
+import net.yakclient.archives.Archives.zipFinder
+import net.yakclient.archives.mixin.InjectionType
+import net.yakclient.archives.mixin.Mixins
+import net.yakclient.archives.transform.Sources
 import net.yakclient.client.boot.YakClient
-import net.yakclient.client.boot.archive.ArchiveUtils
-import net.yakclient.client.boot.archive.ArchiveUtils.resolve
-import net.yakclient.client.boot.archive.ArchiveUtils.zipFinder
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
-import net.yakclient.client.util.*
-import net.yakclient.client.util.resource.SafeResource
+import net.yakclient.common.util.*
+import net.yakclient.common.util.resource.SafeResource
 import java.nio.file.Path
 import java.util.*
 import java.util.logging.Level
-import kotlin.collections.HashSet
 
 public class ApiInternalExt : Extension() {
     private infix fun SafeResource.copyToBlocking(to: Path): Path = runBlocking { this@copyToBlocking copyTo to }
 
     override fun onLoad() {
-        val ext = ArchiveUtils.find(YakClient.settings.mcExtLocation, ArchiveUtils.jpmFinder)
+        val ext = Archives.find(YakClient.settings.mcExtLocation, Archives.jpmFinder)
 
         val manifest = ObjectMapper().registerModule(KotlinModule())
             .readValue<ClientManifest>(YakClient.settings.clientJsonFile.toFile())
@@ -32,8 +35,19 @@ public class ApiInternalExt : Extension() {
         if (minecraftPath.make()) {
             val client = (manifest.downloads[ManifestDownloadType.CLIENT]
                 ?: throw IllegalStateException("Invalid client.json manifest. Must have a client download available!"))
-            client.url.toResource(HexFormat.of().parseHex(client.checksum)).copyToBlocking(minecraftPath)
+            client.toResource().copyToBlocking(minecraftPath)
         }
+
+
+        val mappingsPath = versionPath resolve "minecraft-mappings-${manifest.version}.txt"
+        if (mappingsPath.make()) {
+            val mappings = (manifest.downloads[ManifestDownloadType.CLIENT_MAPPINGS]
+                ?: throw IllegalStateException("Invalid client.json manifest. Must have a client mappings download available!"))
+            mappings.toResource().copyToBlocking(mappingsPath)
+        }
+
+        val mappings =
+            checkNotNull(Parsers[Parsers.PRO_GUARD]) { "ProGuard parser cannot be null!" }.parse(mappingsPath.toUri())
 
         val overriddenNames = hashMapOf<String, String>()
 
@@ -45,7 +59,7 @@ public class ApiInternalExt : Extension() {
 
         val nativesPath = libPath resolve YakClient.settings.minecraftNativesDir
 
-        val mcReference = ArchiveUtils.find(minecraftPath, zipFinder)
+        val mcReference = Archives.find(minecraftPath, zipFinder)
 
         val dependencies = manifest.libraries
             .filter { lib ->
@@ -55,6 +69,7 @@ public class ApiInternalExt : Extension() {
                     "osx" -> OsType.OS_X
                     else -> null
                 }
+
                 val allTypes = setOf(
                     OsType.OS_X,
                     OsType.WINDOWS,
@@ -87,7 +102,7 @@ public class ApiInternalExt : Extension() {
                 ) copyTo path
             }
 
-            ArchiveUtils.find(
+            Archives.find(
                 path,
                 zipFinder
             )
@@ -112,15 +127,37 @@ public class ApiInternalExt : Extension() {
 
             classifier.url.toResource(HexFormat.of().parseHex(classifier.checksum)) copyTo path
 
-            ArchiveUtils.find(path, zipFinder)
+            Archives.find(path, zipFinder)
         }
+
+
+        val classTo = mappings.classes.getByReal("net.minecraft.client.gui.screens.TitleScreen")!!
+        val methodTo = classTo.methods.getByReal("render(Lcom/mojang/blaze3d/vertex/PoseStack;IIF)V")!!
+
+        val methodSignature = "${methodTo.fakeName}(${methodTo.parameters.joinToString(separator = "") { desc ->
+            if (desc !is ClassTypeDescriptor) desc.descriptor else {
+                mappings.classes.getByReal(desc.classname)?.fakeName?.let { s -> "L$s;"} ?: desc.descriptor
+            }
+        }})${methodTo.returnType.descriptor}"
+
+        val config = Mixins.mixinOf(
+            classTo.fakeName, TestTransformer::class.java.name, listOf(
+                Mixins.InjectionMetaData(Sources.sourceOf(TestTransformer::injectMain), to = methodSignature, type = InjectionType.AFTER_BEGIN),
+            )
+        )
+
+        val entryName = "${classTo.fakeName.replace('.', '/')}.class"
+        val entryToModify = mcReference.reader[entryName]!!
+
+        mcReference.writer.put(entryToModify.transform(config, dependencyRefs))
+//        mcReference.writer.put(mcReference.reader[manifest.mainClass]!!.transform())
 
         val loader = MinecraftLoader(
             this.loader,
             (dependencyRefs + mcReference + nativeHandles).map(::ArchiveConglomerateProvider),
         )
 
-        val minecraft = resolve(dependencyRefs + mcReference) { loader }
+        val minecraft = Archives.resolve(dependencyRefs + mcReference) { loader }
 
         val settings = ExtensionLoader.loadSettings(ext)
 
@@ -130,5 +167,18 @@ public class ApiInternalExt : Extension() {
             settings = settings,
             dependencies = ExtensionLoader.loadDependencies(settings)
                 .let { it.toMutableList().also { m -> m.addAll(minecraft) } }).onLoad()
+    }
+}
+
+private class TestTransformer {
+    private var r: String? = null
+
+    //render(PoseStack $$0, int $$1, int $$2, float $$3)
+    //render(Lcom/mojang/blaze3d/vertex/PoseStack;IIF)V
+//    @Injection(to = "render(Lcom/mojang/blaze3d/vertex/PoseStack;IIF)V")
+    fun injectMain() {
+        r = "Yakclient, more like 2023"
+
+//        throw RuntimeException("NO THIS I SNEPAPENING")
     }
 }

@@ -12,18 +12,5 @@ internal data class CachedDependency(
     internal data class Descriptor(
         override val artifact: String,
         override val version: String?
-    ) : Dependency.Descriptor {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other == null || !Dependency.Descriptor::class.isSuperclassOf(other::class)) return false
-
-            other as Dependency.Descriptor
-
-            if (artifact != other.artifact) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int = artifact.hashCode()
-    }
+    ) : Dependency.Descriptor
 }

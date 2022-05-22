@@ -8,7 +8,7 @@ import net.yakclient.client.boot.maven.layout.MavenLayoutProvider
 import net.yakclient.client.boot.maven.layout.MavenRepositoryLayout
 import net.yakclient.client.boot.maven.layout.SnapshotRepositoryLayout
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.equalsAny
+import net.yakclient.common.util.equalsAny
 
 internal class InternalLayoutProvider : MavenLayoutProvider {
     override fun provide(settings: RepositorySettings): MavenRepositoryLayout = when(settings.layout) {

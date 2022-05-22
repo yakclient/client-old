@@ -9,8 +9,8 @@ import net.yakclient.client.boot.maven.layout.InvalidMavenLayoutException
 import net.yakclient.client.boot.maven.layout.MavenRepositoryLayout
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.filterDuplicates
-import net.yakclient.client.util.runCatching
+import net.yakclient.common.util.filterDuplicates
+import net.yakclient.common.util.runCatching
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -24,42 +24,14 @@ internal open class MavenRepositoryHandler(
     override fun find(desc: MavenDescriptor): Dependency? =
         findInternal(desc)
 
-//    protected open fun newestVersionOf(group: String, artifact: String): MavenDescriptor? {
-//        val meta =
-//            runCatching(InvalidMavenLayoutException::class) { layout.artifactMetaOf(group, artifact) } ?: return null
-//
-//        val tree = xml.readValue<Map<String, Any>>(meta.open())
-//
-//        val version = (tree["version"] as? String)
-//            ?: (tree["versioning"] as Map<String, String>)["release"]
-//            ?: return null
-//
-//        return MavenDescriptor(group, artifact, version)
-//    }
-
     private fun findInternal(desc: MavenDescriptor): Dependency? {
-//        val des c= _desc
-//        val desc = if (_desc.version == null)// newestVersionOf(_desc.group, _desc.artifact) ?: return null else _desc
         logger.log(Level.FINEST, "Loading maven dependency: '$desc'")
 
         val (group, artifact, version) = listOf(desc.group, desc.artifact, desc.version)
 
         val valueOr = runCatching(InvalidMavenLayoutException::class) { layout.pomOf(group, artifact, version) }
-        val pom = layout.parsePom(valueOr ?: return null)
 
-//        fun getConst(name: String): String? =
-//            when (name) {
-//                "project.version" -> pom.desc.version
-//                "project.parent.version" -> pom.parent?.desc?.version
-//                else -> null
-//            }
-//
-//
-//        fun String.asIfProperty(): String {
-//            val name = matchAsProperty() ?: return this
-//            return (pom.findProperty(name) ?: getConst(name))?.asIfProperty()
-//                ?: throw IllegalArgumentException("Invalid property value: $this")
-//        }
+        val pom = layout.parsePom(valueOr ?: return null)
 
         val dependencies = pom.dependencies
 
@@ -77,7 +49,6 @@ internal open class MavenRepositoryHandler(
                 it.version
             )
         }
-
 
         return Dependency(
             if (pom.packaging != "pom") runCatching(InvalidMavenLayoutException::class) {

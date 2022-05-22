@@ -6,9 +6,9 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import net.yakclient.client.boot.maven.layout
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.*
-import net.yakclient.client.util.resource.DownloadFailedException
-import net.yakclient.client.util.resource.SafeResource
+import net.yakclient.common.util.*
+import net.yakclient.common.util.resource.DownloadFailedException
+import net.yakclient.common.util.resource.SafeResource
 
 public open class SnapshotRepositoryLayout(settings: RepositorySettings) : DefaultMavenLayout(settings) {
     private val mapper: ObjectMapper = XmlMapper().registerModule(KotlinModule())

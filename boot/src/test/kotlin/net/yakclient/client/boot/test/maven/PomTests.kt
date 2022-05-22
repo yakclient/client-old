@@ -3,7 +3,7 @@ package net.yakclient.client.boot.test.maven
 import net.yakclient.client.boot.internal.CentralMavenLayout
 import net.yakclient.client.boot.maven.*
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.resource.SafeResource
+import net.yakclient.common.util.resource.SafeResource
 import kotlin.test.Test
 
 class PomTests {

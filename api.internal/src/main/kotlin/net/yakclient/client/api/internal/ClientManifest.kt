@@ -3,7 +3,10 @@ package net.yakclient.client.api.internal
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import net.yakclient.common.util.resource.SafeResource
+import net.yakclient.common.util.toResource
 import java.net.URI
+import java.util.HexFormat
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public data class ClientManifest(
@@ -77,7 +80,9 @@ public data class McArtifact(
     val url: URI,
     @JsonProperty("sha1")
     val checksum: String
-)
+) {
+    public fun toResource() : SafeResource = url.toResource(HexFormat.of().parseHex(checksum))
+}
 
 //public enum class ClassifierType(name: String) {
 //    @JsonProperty("javadoc")

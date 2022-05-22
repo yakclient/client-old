@@ -10,9 +10,9 @@ import net.yakclient.client.boot.maven.layout.InvalidMavenLayoutException
 import net.yakclient.client.boot.maven.layout.MavenLayoutFactory
 import net.yakclient.client.boot.maven.layout.MavenRepositoryLayout
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.filterDuplicates
-import net.yakclient.client.util.resource.SafeResource
-import net.yakclient.client.util.runCatching
+import net.yakclient.common.util.filterDuplicates
+import net.yakclient.common.util.resource.SafeResource
+import net.yakclient.common.util.runCatching
 //
 //private val mapper = XmlMapper().registerModule(KotlinModule())
 //private const val BOM_IMPORT_SCOPE = "import"

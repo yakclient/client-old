@@ -9,8 +9,8 @@ import net.yakclient.client.boot.maven.layout.InvalidMavenLayoutException
 import net.yakclient.client.boot.maven.layout.MavenLayoutFactory
 import net.yakclient.client.boot.maven.layout.MavenRepositoryLayout
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.resource.SafeResource
-import net.yakclient.client.util.runCatching
+import net.yakclient.common.util.resource.SafeResource
+import net.yakclient.common.util.runCatching
 
 private val mapper = XmlMapper().registerModule(KotlinModule())
 
@@ -106,13 +106,6 @@ internal fun parsePom(data: PomData, thisLayout: MavenRepositoryLayout): Compres
         it.dependencyManagement.dependencies.map(::toPomDependency)
     }.filterNot { it.scope == "import" } + boms.flatMap { it.dependencyManagement.dependencies.map(::toPomDependency) }
 
-
-//    fun toPomDependency(it: MavenDependency) = PomDependency(
-//        it.groupId.ifAsProperty(),
-//        it.artifactId.ifAsProperty(),
-////        it.version
-//    )
-//
     val dependencies = all.flatMap { datum ->
         datum.dependencies.map { dep ->
             val depGroup = dep.groupId.ifAsProperty()
@@ -136,8 +129,6 @@ internal fun parsePom(data: PomData, thisLayout: MavenRepositoryLayout): Compres
         data.packaging
     )
 }
-//internal parseRepositories()
-
 
 public data class CompressedPom(
     val desc: Dependency.Descriptor,

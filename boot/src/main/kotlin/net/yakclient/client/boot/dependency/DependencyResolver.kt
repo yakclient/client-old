@@ -1,6 +1,7 @@
 package net.yakclient.client.boot.dependency
 
-import net.yakclient.client.boot.archive.ArchiveHandle
-import net.yakclient.client.boot.archive.ResolvedArchive
+import net.yakclient.archives.ArchiveHandle
+import net.yakclient.archives.ResolvedArchive
+
 
 public fun interface DependencyResolver : (ArchiveHandle, List<ResolvedArchive>) -> ResolvedArchive

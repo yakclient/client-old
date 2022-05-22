@@ -1,7 +1,7 @@
 package net.yakclient.client.boot.dependency
 
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.resource.SafeResource
+import net.yakclient.common.util.resource.SafeResource
 
 public class Dependency(
     public val jar: SafeResource?,

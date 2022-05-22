@@ -1,7 +1,7 @@
 package net.yakclient.client.util.test.resource
 
-import net.yakclient.client.util.*
-import net.yakclient.client.util.resource.ExternalResource
+import net.yakclient.common.util.*
+import net.yakclient.common.util.resource.ExternalResource
 import java.io.InputStream
 import java.net.URI
 import java.security.DigestInputStream

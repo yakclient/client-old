@@ -3,8 +3,8 @@ package net.yakclient.client.boot.maven.layout
 import net.yakclient.client.boot.maven.layout
 import net.yakclient.client.boot.maven.url
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.*
-import net.yakclient.client.util.resource.SafeResource
+import net.yakclient.common.util.*
+import net.yakclient.common.util.resource.SafeResource
 import java.net.URL
 
 public open class DefaultMavenLayout(override val settings: RepositorySettings) : MavenRepositoryLayout {

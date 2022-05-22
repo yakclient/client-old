@@ -1,12 +1,12 @@
 package net.yakclient.client.boot.extension
 
 import io.github.config4k.extract
+import net.yakclient.archives.ArchiveHandle
+import net.yakclient.archives.Archives
+import net.yakclient.archives.ResolvedArchive
+import net.yakclient.archives.impl.jpm.JpmHandle
 import net.yakclient.client.boot.YakClient
-import net.yakclient.client.boot.archive.ArchiveHandle
-import net.yakclient.client.boot.archive.ArchiveUtils
-import net.yakclient.client.boot.archive.ResolvedArchive
 import net.yakclient.client.boot.dependency.DependencyGraph
-import net.yakclient.client.boot.internal.jpm.JpmHandle
 import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveLoader
 import net.yakclient.client.boot.maven.MAVEN_LOCAL
@@ -45,7 +45,7 @@ public object ExtensionLoader {
         path: Path,
         parent: Extension,
     ): Extension {
-        val ref = ArchiveUtils.find(path, ArchiveUtils.jpmFinder)
+        val ref = Archives.find(path, Archives.jpmFinder)
         val settings = loadSettings(ref)
         return load(ref, parent, settings, loadDependencies(settings))
     }
@@ -57,7 +57,7 @@ public object ExtensionLoader {
         parent: Extension,
         settings: ExtensionSettings = loadSettings(ref),
         dependencies: List<ResolvedArchive> = loadDependencies(settings),
-        loader : ClassLoader = ArchiveLoader(parent.ref.classloader, dependencies.map(::ArchiveComponent), ref)
+        loader: ClassLoader = ArchiveLoader(parent.ref.classloader, dependencies.map(::ArchiveComponent), ref)
     ): Extension {
         check(ref is JpmHandle) { "ExtensionLoader only supports JPM archives!" }
 
@@ -67,7 +67,7 @@ public object ExtensionLoader {
         )
 
         val archive: ResolvedArchive =
-            ArchiveUtils.resolve(ref, loader, ArchiveUtils.jpmResolver, dependencies + parent.ref)
+            Archives.resolve(ref, loader, Archives.jpmResolver, dependencies + parent.ref)
 
         val ext: Extension =
             archive.classloader.loadClass(settings.extensionClass).getConstructor().newInstance() as Extension

@@ -4,6 +4,7 @@ module yakclient.client.api {
     requires config4k;
     requires typesafe.config;
     requires yakclient.client.util;
+    requires yakclient.archives;
 
     exports net.yakclient.client.api.ext.specific to yakclient.client.boot;
 }

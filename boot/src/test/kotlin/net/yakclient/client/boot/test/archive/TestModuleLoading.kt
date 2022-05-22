@@ -2,7 +2,7 @@ package net.yakclient.client.boot.test.archive
 
 import net.yakclient.client.boot.InitScope
 import net.yakclient.client.boot.init
-import net.yakclient.client.util.*
+import net.yakclient.common.util.*
 import java.io.File
 import java.lang.module.Configuration
 import java.lang.module.ModuleDescriptor

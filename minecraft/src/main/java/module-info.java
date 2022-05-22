@@ -4,5 +4,4 @@ module yakclient.client.minecraft {
     requires yakclient.client.api.internal;
     requires yakclient.client.util;
     requires java.logging;
-//    requires static yak.minecraft;
 }

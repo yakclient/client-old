@@ -1,7 +1,8 @@
 package net.yakclient.client.boot.dependency
 
-import net.yakclient.client.boot.archive.ArchiveHandle
-import net.yakclient.client.boot.archive.ResolvedArchive
+import net.yakclient.archives.ArchiveHandle
+import net.yakclient.archives.ResolvedArchive
+
 
 public abstract class DependencyResolutionFallBack(
     private val fallback: DependencyResolver,

@@ -1,8 +1,8 @@
 package net.yakclient.client.api.restricted
 
 import com.typesafe.config.ConfigFactory
+import net.yakclient.archives.ArchiveHandle
 import net.yakclient.client.boot.exception.RestrictedClassException
-import net.yakclient.client.boot.archive.ArchiveHandle
 import net.yakclient.client.boot.lifecycle.ExtClassLoader
 
 public class ApiExtLoader(parent: ClassLoader, reference: ArchiveHandle) : ExtClassLoader(parent, reference) {

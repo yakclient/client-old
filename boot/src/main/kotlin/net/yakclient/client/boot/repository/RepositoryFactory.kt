@@ -1,8 +1,7 @@
 package net.yakclient.client.boot.repository
 
-import net.yakclient.client.boot.archive.ArchiveCatalog
-import net.yakclient.client.util.LazyMap
-import java.util.*
+import net.yakclient.archives.ArchiveCatalog
+import net.yakclient.common.util.LazyMap
 
 public object RepositoryFactory {
     private val providers = LazyMap<String, RepositoryProvider> { key ->

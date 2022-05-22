@@ -1,8 +1,7 @@
 package net.yakclient.client.boot.extension
 
-import net.yakclient.client.boot.archive.ArchiveHandle
-import net.yakclient.client.util.openStream
-import net.yakclient.client.util.readInputStream
+import net.yakclient.common.util.openStream
+import net.yakclient.common.util.readInputStream
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.net.URI

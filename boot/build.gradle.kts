@@ -5,12 +5,17 @@ plugins {
 group = "net.yakclient"
 version = "1.0-SNAPSHOT"
 
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+}
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
     implementation("io.ktor:ktor-client-cio:2.0.0")
-
+    api("net.yakclient:archives:1.0-SNAPSHOT") {
+        isChanging = true
+    }
     implementation(kotlin("reflect"))
 
     implementation("io.github.config4k:config4k:0.4.2")
@@ -41,4 +46,4 @@ application {
     )
 }
 
-tasks.run.get().workingDir = File("workingDir")
+tasks.run.get().workingDir = project.parent!!.rootDir.toPath().resolve("workingDir").toFile()

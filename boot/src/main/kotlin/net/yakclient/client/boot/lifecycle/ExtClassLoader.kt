@@ -1,6 +1,7 @@
 package net.yakclient.client.boot.lifecycle
 
-import net.yakclient.client.boot.archive.ArchiveHandle
+import net.yakclient.archives.ArchiveHandle
+
 
 public open class ExtClassLoader(
     parent: ClassLoader,

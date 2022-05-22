@@ -8,6 +8,9 @@ module yakclient.client.api.internal {
     requires com.fasterxml.jackson.kotlin;
     requires kotlinx.coroutines.core.jvm;
     requires java.logging;
+    requires transitive yakclient.archives;
+    requires yakclient.archives.mixin;
+    requires yakclient.archive.mapper;
 
     opens net.yakclient.client.api.internal to com.fasterxml.jackson.databind;
     exports net.yakclient.client.api.internal;

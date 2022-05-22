@@ -1,9 +1,9 @@
 package net.yakclient.client.boot.maven.layout
 
-import net.yakclient.client.boot.archive.ArchiveCatalog
+import net.yakclient.archives.ArchiveCatalog
 import net.yakclient.client.boot.maven.DEFAULT_MAVEN_LAYOUT
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.LazyMap
+import net.yakclient.common.util.LazyMap
 
 public object MavenLayoutFactory {
     private val providers: Map<String, MavenLayoutProvider> = LazyMap { key ->

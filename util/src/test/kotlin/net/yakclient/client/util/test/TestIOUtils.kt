@@ -1,7 +1,7 @@
 package net.yakclient.client.util.test
 
-import net.yakclient.client.util.uriAt
-import net.yakclient.client.util.urlAt
+import net.yakclient.common.util.uriAt
+import net.yakclient.common.util.urlAt
 import org.junit.jupiter.api.Test
 import java.net.URL
 

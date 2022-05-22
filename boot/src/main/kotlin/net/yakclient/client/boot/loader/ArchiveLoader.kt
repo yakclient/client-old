@@ -1,7 +1,8 @@
 package net.yakclient.client.boot.loader
 
-import net.yakclient.client.boot.archive.ArchiveHandle
-import net.yakclient.client.util.readInputStream
+import net.yakclient.archives.ArchiveHandle
+import net.yakclient.common.util.readInputStream
+import java.net.URL
 import java.nio.ByteBuffer
 import java.security.CodeSource
 import java.security.ProtectionDomain
@@ -18,14 +19,26 @@ public class ArchiveLoader(
         check(handle.isOpen) { "Given reference: ${handle.location} must be open!" }
     }
 
+    override fun findResource(name: String): URL? {
+        return handle.reader[name]?.resource?.uri?.toURL()
+    }
+
+    override fun findClass(name: String): Class<*> =
+        loadLocalClass(name) ?: super.findClass(name)
+
+    override fun findClass(moduleName: String?, name: String): Class<*> = findClass(name)
+
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
+       return (loadLocalClass(name) ?: super.loadClass(name, false)).also { if(resolve) resolveClass(it) }
+    }
+
+    private fun loadLocalClass(name: String) : Class<*>? {
         findLoadedClass(name)?.let { return it }
 
-        val entry: ArchiveHandle.Entry =
-            handle.reader["${name.replace('.', '/')}.class"] ?: return super.loadClass(name, resolve)
+        val entry: ArchiveHandle.Entry = handle.reader["${name.replace('.', '/')}.class"] ?: return null
 
         val bb = ByteBuffer.wrap(entry.resource.open().readInputStream())
 
-        return defineClass(name, bb, domain).also { if (resolve) resolveClass(it) }
+        return defineClass(name, bb, domain)
     }
 }

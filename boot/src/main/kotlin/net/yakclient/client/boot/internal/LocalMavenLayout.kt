@@ -4,8 +4,8 @@ import net.yakclient.client.boot.maven.*
 import net.yakclient.client.boot.maven.layout.InvalidMavenLayoutException
 import net.yakclient.client.boot.maven.layout.MavenRepositoryLayout
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.client.util.resource.SafeResource
-import net.yakclient.client.util.toResource
+import net.yakclient.common.util.resource.SafeResource
+import net.yakclient.common.util.toResource
 import java.nio.file.Files
 import java.nio.file.Path
 

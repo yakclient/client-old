@@ -1,7 +1,6 @@
 package net.yakclient.client.boot.test.ext
 
-import io.github.config4k.registerCustomType
-import net.yakclient.client.util.UriCustomType
+import net.yakclient.client.boot.loader.IntegratedLoader
 import net.yakclient.client.util.child
 import net.yakclient.client.util.parent
 import net.yakclient.client.util.workingDir
@@ -38,35 +37,9 @@ class ModuleLoaderTests {
     }
 
     @Test
-    fun `Load reference with ExtensionLoader`() {
-//        val ref = ExtensionLoader.find(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toPath())
-//
-//        assert(ref.name == "yakclient.client.api")
-//
-//        ref.writer.put(entryOfClass(ClassToBeInjected::class.java.name))
-//
-//        assert(ref.reader[ClassToBeInjected::class.java.name] != null)
-    }
-
-    @Test
     fun `Test load module with extension loader`() {
-        registerCustomType(UriCustomType())
-//        registerCustomType(object : TypedMatchingType<ArtifactID>(ArtifactID::class.java), ReadOnlyType {
-//            override fun parse(clazz: ClassContainer, config: Config, name: String): Any =
-//                config.getString(name).split(':').let { ArtifactID(it[0], it[1], it[2]) }
-//        })
-
-//        val ext = ExtensionLoader.load(
-//            ExtensionLoader.find(workingDir().parent("client").child("api", "build", "libs", "api-1.0-SNAPSHOT.jar").toPath()),
-//            object : Extension() {
-//                init {
-//                    init(
-//                        ClassLoader.getSystemClassLoader(), BasicExtensionSettings("", "", null, null, null)
-//                    )
-//                }
-//            }
-//        )
-//        println(ext)
+        println("hye")
+        IntegratedLoader::class.java.classLoader.getResource(IntegratedLoader::class.java.name.replace('.', '/') + ".class")
     }
 
 }

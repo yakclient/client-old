@@ -7,7 +7,7 @@ module yakclient.client.util {
     requires kotlinx.coroutines.core.jvm;
     requires java.logging;
     requires kotlin.reflect;
+    requires transitive yakclient.common.util;
 
     exports net.yakclient.client.util;
-    exports net.yakclient.client.util.resource;
 }
