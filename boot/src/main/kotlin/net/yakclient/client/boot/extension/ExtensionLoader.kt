@@ -4,7 +4,6 @@ import io.github.config4k.extract
 import net.yakclient.archives.ArchiveHandle
 import net.yakclient.archives.Archives
 import net.yakclient.archives.ResolvedArchive
-import net.yakclient.archives.impl.jpm.JpmHandle
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.dependency.DependencyGraph
 import net.yakclient.client.boot.loader.ArchiveComponent
@@ -19,11 +18,11 @@ public object ExtensionLoader {
     private val logger = Logger.getLogger(this::class.simpleName)
 
     @JvmStatic
-    public fun loadDependencies(settings: ExtensionSettings): List<ResolvedArchive> {
+    public fun loadDependencies(settings: ExtensionSettings): Set<ResolvedArchive> {
         val repositories =
             settings.repositories?.map { DependencyGraph.ofRepository(it, YakClient.dependencyResolver) } ?: listOf()
 
-        return settings.dependencies?.flatMap { d ->
+        return settings.dependencies?.flatMapTo(HashSet()) { d ->
             repositories.firstNotNullOfOrNull { r -> r.load(d).takeIf(Collection<*>::isNotEmpty) }
                 ?: throw IllegalArgumentException("Extension '${settings.name}' has a required dependency of '$d' which cannot be found in the specified repositories: '${
                     settings.repositories?.joinToString(prefix = "[", postfix = "]") {
@@ -32,7 +31,7 @@ public object ExtensionLoader {
                         }"
                     } ?: "[]"
                 }'")
-        } ?: ArrayList()
+        } ?: HashSet()
     }
 
     @JvmStatic
@@ -45,7 +44,7 @@ public object ExtensionLoader {
         path: Path,
         parent: Extension,
     ): Extension {
-        val ref = Archives.find(path, Archives.jpmFinder)
+        val ref = Archives.find(path, Archives.Finders.JPM_FINDER)
         val settings = loadSettings(ref)
         return load(ref, parent, settings, loadDependencies(settings))
     }
@@ -56,18 +55,20 @@ public object ExtensionLoader {
         ref: ArchiveHandle,
         parent: Extension,
         settings: ExtensionSettings = loadSettings(ref),
-        dependencies: List<ResolvedArchive> = loadDependencies(settings),
+        dependencies: Set<ResolvedArchive> = loadDependencies(settings),
         loader: ClassLoader = ArchiveLoader(parent.ref.classloader, dependencies.map(::ArchiveComponent), ref)
     ): Extension {
-        check(ref is JpmHandle) { "ExtensionLoader only supports JPM archives!" }
-
         if (settings.repositories?.any { it.type == MAVEN_LOCAL } == true) logger.log(
             Level.WARNING,
             "Extension: '${settings.name}' contains a repository referencing maven local! Make sure this is removed in all production builds."
         )
 
-        val archive: ResolvedArchive =
-            Archives.resolve(ref, loader, Archives.jpmResolver, dependencies + parent.ref)
+        val archive: ResolvedArchive = Archives.resolve(
+            ref,
+            loader,
+            Archives.Resolvers.JPM_RESOLVER,
+            (dependencies + parent.ref).toHashSet()
+        )
 
         val ext: Extension =
             archive.classloader.loadClass(settings.extensionClass).getConstructor().newInstance() as Extension

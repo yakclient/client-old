@@ -6,9 +6,8 @@ import io.github.config4k.registerCustomType
 import kotlinx.cli.ArgParser
 import kotlinx.cli.required
 import net.yakclient.archives.ArchiveHandle
+import net.yakclient.archives.JpmArchives
 import net.yakclient.archives.ResolvedArchive
-import net.yakclient.archives.impl.jpm.JpmHandle
-import net.yakclient.archives.impl.jpm.ResolvedJpm
 import net.yakclient.client.boot.YakClient.dependencyResolver
 import net.yakclient.client.boot.dependency.ArchiveDependencyResolver
 import net.yakclient.client.boot.dependency.DependencyGraph
@@ -16,7 +15,10 @@ import net.yakclient.client.boot.dependency.DependencyResolutionFallBack
 import net.yakclient.client.boot.dependency.DependencyResolver
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
+import net.yakclient.client.boot.internal.InternalLayoutProvider
+import net.yakclient.client.boot.internal.InternalRepoProvider
 import net.yakclient.client.boot.maven.MAVEN_CENTRAL
+import net.yakclient.client.boot.maven.layout.MavenLayoutFactory
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.PathArgument
@@ -25,6 +27,7 @@ import net.yakclient.common.util.*
 import net.yakclient.common.util.resource.SafeResource
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.security.Permission
 import java.util.logging.Level
 import kotlin.system.exitProcess
 
@@ -34,14 +37,14 @@ public object YakClient : Extension() {
     public var yakDir: Path by immutableLateInit()
     public val dependencyResolver: DependencyResolver =
         object : DependencyResolutionFallBack(ArchiveDependencyResolver()) {
-            override fun resolve(ref: ArchiveHandle, dependants: List<ResolvedArchive>): ResolvedArchive? {
-                fun moduleByName(name: String): ResolvedArchive? = ModuleLayer.boot().modules().find {
-                    it.name == name
-                }?.let(::ResolvedJpm)
-                return if (ref is JpmHandle) when (ref.descriptor().name()) {
-                    "javaee.api" -> moduleByName("java.xml")
-                    else -> moduleByName(ref.descriptor().name())
-                } else null
+            override fun resolve(ref: ArchiveHandle, dependants: Set<ResolvedArchive>): ResolvedArchive? {
+                if (ref.name == null) return null
+                val name = when (ref.name) {
+                    "javaee.api" -> "java.xml"
+                    else -> ref.name
+                }
+
+                return JpmArchives.moduleToArchive(ModuleLayer.boot().findModule(name).orElseGet { null } ?: return null)
             }
         }
 
@@ -92,17 +95,16 @@ public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
     registerCustomType(UriCustomType())
 
     YakClient.yakDir = yakDir
-
     YakClient.settings = ConfigFactory.parseFile((yakDir resolve SETTINGS_NAME).toFile()).extract("boot")
-
-    // Clear temp directory
     YakClient.settings.tempPath.deleteAll()
-
     YakClient.init(
-        ResolvedJpm(YakClient::class.java.module),
+        JpmArchives.moduleToArchive(YakClient::class.java.module),
         YakClient.settings,
         null
     )
+
+    RepositoryFactory.add(InternalRepoProvider())
+    MavenLayoutFactory.add(InternalLayoutProvider())
 
     val dl = DependencyGraph.DependencyLoader(
         RepositoryFactory.create(
@@ -113,15 +115,17 @@ public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
 
     if (scope.equalsAny(InitScope.PRODUCTION, InitScope.DEVELOPMENT)) {
         dl load "org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4"
-        dl load "org.jetbrains.kotlinx:kotlinx-coroutines-core:2.0.0-beta-1"
+        dl load "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1"
         dl load "org.jetbrains.kotlin:kotlin-reflect:1.6.0"
         dl load "io.github.config4k:config4k:0.4.2"
-//        dl load "com.typesafe:config:1.4.1"
         dl load "com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6"
         dl load "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.6"
         dl load "org.jetbrains.kotlin:kotlin-stdlib-common:2.0.0-beta-1"
         dl load "io.ktor:ktor-client-cio:2.0.0"
         dl load "net.yakclient:archives:1.0-SNAPSHOT"
+        dl load "org.jetbrains.kotlin:kotlin-stdlib:1.6.21"
+        dl load "org.jetbrains.kotlin:kotlin-reflect:1.6.21"
+        dl load "net.yakclient:common-util:1.0-SNAPSHOT"
     }
 }
 

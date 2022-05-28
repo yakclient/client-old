@@ -4,4 +4,4 @@ import net.yakclient.archives.ArchiveHandle
 import net.yakclient.archives.ResolvedArchive
 
 
-public fun interface DependencyResolver : (ArchiveHandle, List<ResolvedArchive>) -> ResolvedArchive
+public fun interface DependencyResolver : (ArchiveHandle, Set<ResolvedArchive>) -> ResolvedArchive

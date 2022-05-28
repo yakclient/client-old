@@ -6,8 +6,8 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import kotlinx.coroutines.runBlocking
 import net.yakclient.archive.mapper.ClassTypeDescriptor
 import net.yakclient.archive.mapper.Parsers
+import net.yakclient.archives.ArchiveHandle
 import net.yakclient.archives.Archives
-import net.yakclient.archives.Archives.zipFinder
 import net.yakclient.archives.mixin.InjectionType
 import net.yakclient.archives.mixin.Mixins
 import net.yakclient.archives.transform.Sources
@@ -25,7 +25,7 @@ public class ApiInternalExt : Extension() {
     private infix fun SafeResource.copyToBlocking(to: Path): Path = runBlocking { this@copyToBlocking copyTo to }
 
     override fun onLoad() {
-        val ext = Archives.find(YakClient.settings.mcExtLocation, Archives.jpmFinder)
+        val ext: ArchiveHandle = Archives.find(YakClient.settings.mcExtLocation, Archives.Finders.JPM_FINDER)
 
         val manifest = ObjectMapper().registerModule(KotlinModule())
             .readValue<ClientManifest>(YakClient.settings.clientJsonFile.toFile())
@@ -59,7 +59,7 @@ public class ApiInternalExt : Extension() {
 
         val nativesPath = libPath resolve YakClient.settings.minecraftNativesDir
 
-        val mcReference = Archives.find(minecraftPath, zipFinder)
+        val mcReference = Archives.find(minecraftPath, Archives.Finders.ZIP_FINDER)
 
         val dependencies = manifest.libraries
             .filter { lib ->
@@ -104,7 +104,7 @@ public class ApiInternalExt : Extension() {
 
             Archives.find(
                 path,
-                zipFinder
+                Archives.Finders.ZIP_FINDER
             )
         }
 
@@ -127,22 +127,28 @@ public class ApiInternalExt : Extension() {
 
             classifier.url.toResource(HexFormat.of().parseHex(classifier.checksum)) copyTo path
 
-            Archives.find(path, zipFinder)
+            Archives.find(path, Archives.Finders.ZIP_FINDER)
         }
 
 
         val classTo = mappings.classes.getByReal("net.minecraft.client.gui.screens.TitleScreen")!!
         val methodTo = classTo.methods.getByReal("render(Lcom/mojang/blaze3d/vertex/PoseStack;IIF)V")!!
 
-        val methodSignature = "${methodTo.fakeName}(${methodTo.parameters.joinToString(separator = "") { desc ->
-            if (desc !is ClassTypeDescriptor) desc.descriptor else {
-                mappings.classes.getByReal(desc.classname)?.fakeName?.let { s -> "L$s;"} ?: desc.descriptor
+        val methodSignature = "${methodTo.fakeName}(${
+            methodTo.parameters.joinToString(separator = "") { desc ->
+                if (desc !is ClassTypeDescriptor) desc.descriptor else {
+                    mappings.classes.getByReal(desc.classname)?.fakeName?.let { s -> "L$s;" } ?: desc.descriptor
+                }
             }
-        }})${methodTo.returnType.descriptor}"
+        })${methodTo.returnType.descriptor}"
 
         val config = Mixins.mixinOf(
             classTo.fakeName, TestTransformer::class.java.name, listOf(
-                Mixins.InjectionMetaData(Sources.sourceOf(TestTransformer::injectMain), to = methodSignature, type = InjectionType.AFTER_BEGIN),
+                Mixins.InjectionMetaData(
+                    Sources.of(TestTransformer::injectMain),
+                    to = methodSignature,
+                    type = InjectionType.AFTER_BEGIN
+                ),
             )
         )
 
@@ -150,14 +156,13 @@ public class ApiInternalExt : Extension() {
         val entryToModify = mcReference.reader[entryName]!!
 
         mcReference.writer.put(entryToModify.transform(config, dependencyRefs))
-//        mcReference.writer.put(mcReference.reader[manifest.mainClass]!!.transform())
 
         val loader = MinecraftLoader(
             this.loader,
             (dependencyRefs + mcReference + nativeHandles).map(::ArchiveConglomerateProvider),
         )
 
-        val minecraft = Archives.resolve(dependencyRefs + mcReference) { loader }
+        val minecraft = Archives.resolve(dependencyRefs + mcReference, Archives.Resolvers.ZIP_RESOLVER) { loader }
 
         val settings = ExtensionLoader.loadSettings(ext)
 
@@ -166,19 +171,15 @@ public class ApiInternalExt : Extension() {
             this,
             settings = settings,
             dependencies = ExtensionLoader.loadDependencies(settings)
-                .let { it.toMutableList().also { m -> m.addAll(minecraft) } }).onLoad()
+                .let { it.toMutableSet().also { m -> m.addAll(minecraft) } }).onLoad()
     }
 }
 
-private class TestTransformer {
+
+public class TestTransformer {
     private var r: String? = null
 
-    //render(PoseStack $$0, int $$1, int $$2, float $$3)
-    //render(Lcom/mojang/blaze3d/vertex/PoseStack;IIF)V
-//    @Injection(to = "render(Lcom/mojang/blaze3d/vertex/PoseStack;IIF)V")
-    fun injectMain() {
-        r = "Yakclient, more like 2023"
-
-//        throw RuntimeException("NO THIS I SNEPAPENING")
+    public fun injectMain() {
+        r = "Something random"
     }
 }

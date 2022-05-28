@@ -11,6 +11,11 @@ module yakclient.client.api.internal {
     requires transitive yakclient.archives;
     requires yakclient.archives.mixin;
     requires yakclient.archive.mapper;
+//    requires yakclient.graphics.api;
+//    requires yakclient.graphics.components;
+//    requires yakclient.graphics.lwjgl;
+//    requires yakclient.graphics.lwjgl.util;
+//    requires yakclient.graphics.lwjgl.components;
 
     opens net.yakclient.client.api.internal to com.fasterxml.jackson.databind;
     exports net.yakclient.client.api.internal;

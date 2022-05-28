@@ -11,13 +11,12 @@ import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.common.util.equalsAny
 
 internal class InternalLayoutProvider : MavenLayoutProvider {
-    override fun provide(settings: RepositorySettings): MavenRepositoryLayout = when(settings.layout) {
+    override fun provide(settings: RepositorySettings): MavenRepositoryLayout? = when(settings.layout) {
         DEFAULT_MAVEN_LAYOUT -> DefaultMavenLayout(settings)
         "local" -> LocalMavenLayout
         SNAPSHOT_MAVEN_LAYOUT -> SnapshotRepositoryLayout(settings)
         "legacy" -> DefaultMavenLayout(settings) // not correct, but i really dont want to implement legacy atm
-        else -> throw IllegalArgumentException("Invalid layout passed: ${settings.layout}")
+        else -> null
     }
 
-    override fun provides(layout: String): Boolean = layout.equalsAny(DEFAULT_MAVEN_LAYOUT, "local", SNAPSHOT_MAVEN_LAYOUT, "legacy")
 }

@@ -3,6 +3,7 @@ package net.yakclient.client.boot.dependency
 import kotlinx.coroutines.*
 import net.yakclient.archives.Archives
 import net.yakclient.archives.ResolvedArchive
+import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.exception.CyclicDependenciesException
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
@@ -15,12 +16,12 @@ import java.util.logging.Logger
 
 public object DependencyGraph {
     private val logger: Logger = Logger.getLogger(DependencyGraph::class.simpleName)
-
+    private val defaultResolver = YakClient.dependencyResolver
     private val graph: MutableMap<Dependency.Descriptor, DependencyNode> = HashMap()
 
     public fun ofRepository(
         settings: RepositorySettings,
-        resolver: DependencyResolver = ArchiveDependencyResolver()
+        resolver: DependencyResolver = defaultResolver
     ): DependencyLoader<*> =
         ofRepository(RepositoryFactory.create(settings), resolver)
 
@@ -32,7 +33,7 @@ public object DependencyGraph {
 
     public class DependencyLoader<D : Dependency.Descriptor> internal constructor(
         private val repo: RepositoryHandler<D>,
-        private val resolver: DependencyResolver = ArchiveDependencyResolver()
+        private val resolver: DependencyResolver = defaultResolver
     ) {
 
         // TODO Replace the list with some sort of deferred archive that delegates to children
@@ -140,8 +141,8 @@ public object DependencyGraph {
             path: Path,
             dependencies: List<DependencyNode>
         ) = resolver(
-            Archives.find(path, Archives.jpmFinder),
-            dependencies.flatMap(DependencyNode::referenceOrChildren)
+            Archives.find(path, Archives.Finders.JPM_FINDER),
+            dependencies.flatMapTo(HashSet(), DependencyNode::referenceOrChildren)
         )
     }
 }

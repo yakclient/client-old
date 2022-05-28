@@ -11,7 +11,27 @@ dependencies {
     implementation(project(":api"))
     implementation(project(":boot"))
 
-    implementation("net.yakclient:archive-mapper:1.0-SNAPSHOT")
+    implementation("net.yakclient:archive-mapper:1.0-SNAPSHOT") {
+        isChanging = true
+    }
+//    implementation("net.yakclient:graphics-api:1.0-SNAPSHOT") {
+//        isChanging = true
+//    }
+//    implementation("net.yakclient:graphics-components:1.0-SNAPSHOT") {
+//        isChanging = true
+//    }
+//    implementation("net.yakclient:graphics-util:1.0-SNAPSHOT") {
+//        isChanging = true
+//    }
+//    implementation("net.yakclient:graphics-lwjgl:1.0-SNAPSHOT") {
+//        isChanging = true
+//    }
+//    implementation("net.yakclient:graphics-lwjgl-components:1.0-SNAPSHOT") {
+//        isChanging = true
+//    }
+//    implementation("net.yakclient:graphics-lwjgl-util:1.0-SNAPSHOT") {
+//        isChanging = true
+//    }
     api("net.yakclient:archives:1.0-SNAPSHOT") {
         isChanging = true
     }
