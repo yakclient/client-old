@@ -4,17 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import kotlinx.coroutines.runBlocking
-import net.yakclient.archive.mapper.ClassTypeDescriptor
-import net.yakclient.archive.mapper.Parsers
 import net.yakclient.archives.ArchiveHandle
 import net.yakclient.archives.Archives
-import net.yakclient.archives.mixin.InjectionType
-import net.yakclient.archives.mixin.Mixins
-import net.yakclient.archives.transform.Sources
+import net.yakclient.archives.ResolvedArchive
 import net.yakclient.client.boot.YakClient
+import net.yakclient.client.boot.dependency.*
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
+import net.yakclient.client.boot.maven.MAVEN
+import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.common.util.*
 import net.yakclient.common.util.resource.SafeResource
 import java.nio.file.Path
@@ -46,8 +45,6 @@ public class ApiInternalExt : Extension() {
             mappings.toResource().copyToBlocking(mappingsPath)
         }
 
-        val mappings =
-            checkNotNull(Parsers[Parsers.PRO_GUARD]) { "ProGuard parser cannot be null!" }.parse(mappingsPath.toUri())
 
         val overriddenNames = hashMapOf<String, String>()
 
@@ -61,34 +58,33 @@ public class ApiInternalExt : Extension() {
 
         val mcReference = Archives.find(minecraftPath, Archives.Finders.ZIP_FINDER)
 
-        val dependencies = manifest.libraries
-            .filter { lib ->
-                fun String.osNameToType(): OsType? = when (this) {
-                    "linux" -> OsType.UNIX
-                    "windows" -> OsType.WINDOWS
-                    "osx" -> OsType.OS_X
-                    else -> null
-                }
-
-                val allTypes = setOf(
-                    OsType.OS_X,
-                    OsType.WINDOWS,
-                    OsType.UNIX
-                )
-
-                val allowableOperatingSystems = if (lib.rules.isEmpty()) allTypes.toMutableSet() else lib.rules
-                    .filter { it.action == LibraryRuleAction.ALLOW }
-                    .flatMapTo(HashSet()) {
-
-                        it.osName?.osNameToType()?.let(::listOf) ?: allTypes
-                    }
-
-                lib.rules.filter { it.action == LibraryRuleAction.DISALLOW }.forEach {
-                    it.osName?.osNameToType()?.let(allowableOperatingSystems::remove)
-                }
-
-                allowableOperatingSystems.contains(OsType.type)
+        val dependencies = manifest.libraries.filter { lib ->
+            fun String.osNameToType(): OsType? = when (this) {
+                "linux" -> OsType.UNIX
+                "windows" -> OsType.WINDOWS
+                "osx" -> OsType.OS_X
+                else -> null
             }
+
+            val allTypes = setOf(
+                OsType.OS_X,
+                OsType.WINDOWS,
+                OsType.UNIX
+            )
+
+            val allowableOperatingSystems = if (lib.rules.isEmpty()) allTypes.toMutableSet() else lib.rules
+                .filter { it.action == LibraryRuleAction.ALLOW }
+                .flatMapTo(HashSet()) {
+
+                    it.osName?.osNameToType()?.let(::listOf) ?: allTypes
+                }
+
+            lib.rules.filter { it.action == LibraryRuleAction.DISALLOW }.forEach {
+                it.osName?.osNameToType()?.let(allowableOperatingSystems::remove)
+            }
+
+            allowableOperatingSystems.contains(OsType.type)
+        }
 
         val dependencyRefs = dependencies.mapBlocking {
             val path = libPath resolve "${libNames[it.name]}.jar"
@@ -130,39 +126,61 @@ public class ApiInternalExt : Extension() {
             Archives.find(path, Archives.Finders.ZIP_FINDER)
         }
 
+//        val mappings =
+//            checkNotNull(Parsers[Parsers.PRO_GUARD]) { "ProGuard parser cannot be null!" }.parse(mappingsPath.toUri())
 
-        val classTo = mappings.classes.getByReal("net.minecraft.client.gui.screens.TitleScreen")!!
-        val methodTo = classTo.methods.getByReal("render(Lcom/mojang/blaze3d/vertex/PoseStack;IIF)V")!!
+//        val classTo = mappings.classes.getByReal("net.minecraft.client.gui.screens.TitleScreen")!!
+//        val methodTo = classTo.methods.getByReal("render(Lcom/mojang/blaze3d/vertex/PoseStack;IIF)V")!!
+//
+//        val methodSignature = "${methodTo.fakeName}(${
+//            methodTo.parameters.joinToString(separator = "") { desc ->
+//                if (desc !is ClassTypeDescriptor) desc.descriptor else {
+//                    mappings.classes.getByReal(desc.classname)?.fakeName?.let { s -> "L$s;" } ?: desc.descriptor
+//                }
+//            }
+//        })${methodTo.returnType.descriptor}"
+//
+//        val config = Mixins.mixinOf(
+//            classTo.fakeName, TestTransformer::class.java.name, listOf(
+//                Mixins.InjectionMetaData(
+//                    Sources.of(TestTransformer::injectMain),
+//                    to = methodSignature,
+//                    type = InjectionType.AFTER_BEGIN
+//                ),
+//            )
+//        )
+//
+//        val entryName = "${classTo.fakeName.replace('.', '/')}.class"
+//        val entryToModify = mcReference.reader[entryName]!!
+//
+//        mcReference.writer.put(entryToModify.transform(config, dependencyRefs))
 
-        val methodSignature = "${methodTo.fakeName}(${
-            methodTo.parameters.joinToString(separator = "") { desc ->
-                if (desc !is ClassTypeDescriptor) desc.descriptor else {
-                    mappings.classes.getByReal(desc.classname)?.fakeName?.let { s -> "L$s;" } ?: desc.descriptor
-                }
-            }
-        })${methodTo.returnType.descriptor}"
-
-        val config = Mixins.mixinOf(
-            classTo.fakeName, TestTransformer::class.java.name, listOf(
-                Mixins.InjectionMetaData(
-                    Sources.of(TestTransformer::injectMain),
-                    to = methodSignature,
-                    type = InjectionType.AFTER_BEGIN
-                ),
-            )
-        )
-
-        val entryName = "${classTo.fakeName.replace('.', '/')}.class"
-        val entryToModify = mcReference.reader[entryName]!!
-
-        mcReference.writer.put(entryToModify.transform(config, dependencyRefs))
 
         val loader = MinecraftLoader(
             this.loader,
             (dependencyRefs + mcReference + nativeHandles).map(::ArchiveConglomerateProvider),
         )
 
-        val minecraft = Archives.resolve(dependencyRefs + mcReference, Archives.Resolvers.ZIP_RESOLVER) { loader }
+        val minecraft: List<ResolvedArchive> = Archives.resolve(dependencyRefs + mcReference, Archives.Resolvers.ZIP_RESOLVER) { loader }
+
+        val resolver = DependencyResolutionBid { handle, _ ->
+            println(minecraft)
+            minecraft.find { it.name == handle.name }
+        }.orFallBackOn(YakClient.dependencyResolver)
+
+        val dependencyLoader = DependencyGraph.ofRepository(
+            RepositorySettings(
+                MAVEN,
+                mapOf("url" to "http://repo.yakclient.net/snapshots", "layout" to "snapshot")
+            ), resolver
+        )
+
+        dependencyLoader load "net.yakclient:graphics-api:1.0-SNAPSHOT"
+        dependencyLoader load "net.yakclient:graphics-util:1.0-SNAPSHOT"
+        dependencyLoader load "net.yakclient:graphics-lwjgl:1.0-SNAPSHOT"
+        dependencyLoader load "net.yakclient:graphics-lwjgl-components:1.0-SNAPSHOT"
+        dependencyLoader load "net.yakclient:graphics-lwjgl-util:1.0-SNAPSHOT"
+        dependencyLoader load "net.yakclient:graphics-components:1.0-SNAPSHOT"
 
         val settings = ExtensionLoader.loadSettings(ext)
 
@@ -172,14 +190,5 @@ public class ApiInternalExt : Extension() {
             settings = settings,
             dependencies = ExtensionLoader.loadDependencies(settings)
                 .let { it.toMutableSet().also { m -> m.addAll(minecraft) } }).onLoad()
-    }
-}
-
-
-public class TestTransformer {
-    private var r: String? = null
-
-    public fun injectMain() {
-        r = "Something random"
     }
 }

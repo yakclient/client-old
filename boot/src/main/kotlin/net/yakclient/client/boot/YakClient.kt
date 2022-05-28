@@ -9,10 +9,7 @@ import net.yakclient.archives.ArchiveHandle
 import net.yakclient.archives.JpmArchives
 import net.yakclient.archives.ResolvedArchive
 import net.yakclient.client.boot.YakClient.dependencyResolver
-import net.yakclient.client.boot.dependency.ArchiveDependencyResolver
-import net.yakclient.client.boot.dependency.DependencyGraph
-import net.yakclient.client.boot.dependency.DependencyResolutionFallBack
-import net.yakclient.client.boot.dependency.DependencyResolver
+import net.yakclient.client.boot.dependency.*
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.internal.InternalLayoutProvider

@@ -13,6 +13,8 @@ public abstract class DependencyResolutionFallBack(
     public abstract fun resolve(ref: ArchiveHandle, dependants: Set<ResolvedArchive>): ResolvedArchive?
 }
 
-public fun DependencyResolver.resolveOrFallBack(call: (ref: ArchiveHandle, dependants: Set<ResolvedArchive>) -> ResolvedArchive?) : DependencyResolver = object: DependencyResolutionFallBack(this) {
-    override fun resolve(ref: ArchiveHandle, dependants: Set<ResolvedArchive>): ResolvedArchive? = call(ref, dependants)
+public fun interface DependencyResolutionBid : (ArchiveHandle, Set<ResolvedArchive>) -> ResolvedArchive?
+
+public fun DependencyResolutionBid.orFallBackOn(fallback: DependencyResolver) : DependencyResolver = object: DependencyResolutionFallBack(fallback) {
+    override fun resolve(ref: ArchiveHandle, dependants: Set<ResolvedArchive>): ResolvedArchive? = this@orFallBackOn(ref, dependants)
 }
