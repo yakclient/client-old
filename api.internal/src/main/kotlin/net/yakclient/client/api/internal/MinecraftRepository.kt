@@ -8,24 +8,27 @@ import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
 
+private const val REPO_NAME = "minecraft"
+private const val DELEGATE_URL = "https://libraries.minecraft.net"
+
 internal class MinecraftRepository(
     libraries: List<ClientLibrary>
-): RepositoryHandler<MavenDescriptor> {
+) : RepositoryHandler<MavenDescriptor> {
     private val dependencies = libraries.associateBy { MavenDescriptor.parseDescription(it.name)!!.artifact }
-
-    init {
-        RepositoryFactory.add {
-            if (it.type == "minecraft") this else null
-        }
-    }
-
     private val delegate = RepositoryFactory.create(
         RepositorySettings(
             MAVEN,
-            mapOf(URL_OPTION_NAME to "https://libraries.minecraft.net")
+            mapOf(URL_OPTION_NAME to DELEGATE_URL)
         )
     ) as RepositoryHandler<MavenDescriptor>
-    override val settings: RepositorySettings = RepositorySettings("minecraft")
+
+    init {
+        RepositoryFactory.add {
+            if (it.type == REPO_NAME) this else null
+        }
+    }
+
+    override val settings: RepositorySettings = RepositorySettings(REPO_NAME)
 
     override fun find(desc: MavenDescriptor): Dependency? {
         val dependency = dependencies[desc.artifact] ?: return null

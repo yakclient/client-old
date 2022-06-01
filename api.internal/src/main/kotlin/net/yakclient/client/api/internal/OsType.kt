@@ -9,16 +9,20 @@ public enum class OsType {
     UNIX;
 
     public companion object {
-        public val type: OsType = run {
+        public val type: OsType
+
+        init {
             val os = System.getProperty("os.name").lowercase(Locale.ENGLISH)
-            when {
-                os.contains("win") -> WINDOWS
-                os.contains("mac") -> OS_X
-                os.contains("solaris") || os.contains("sunos") -> UNIX
-                os.contains("linux") -> UNIX
-                os.contains("unix") -> UNIX
-                else -> throw IllegalStateException("Unsupported OS: $os")
-            }
+            type =
+                when {
+                    os.contains("win") -> WINDOWS
+                    os.contains("mac") -> OS_X
+                    os.contains("solaris") || os.contains("sunos") -> UNIX
+                    os.contains("linux") -> UNIX
+                    os.contains("unix") -> UNIX
+                    else -> throw IllegalStateException("Unsupported OS: $os")
+                }
+
         }
     }
 }

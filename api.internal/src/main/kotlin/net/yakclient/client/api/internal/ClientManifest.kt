@@ -1,12 +1,11 @@
 package net.yakclient.client.api.internal
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import net.yakclient.common.util.resource.SafeResource
 import net.yakclient.common.util.toResource
 import java.net.URI
-import java.util.HexFormat
+import java.util.*
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public data class ClientManifest(
