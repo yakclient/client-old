@@ -9,7 +9,7 @@ import java.security.ProtectionDomain
 import java.security.cert.Certificate
 
 // TODO Currently no archive handles are being closed, the best solution i can think of is to have some soft of collection service that keeps track of all loaders and closes them when the JVM exits or if they are not being used anymore
-public class ArchiveLoader(
+public open class ArchiveLoader(
     parent: ClassLoader,
     components: List<ClComponent>,
     private val handle: ArchiveHandle
@@ -23,13 +23,13 @@ public class ArchiveLoader(
         return handle.reader[name]?.resource?.uri?.toURL()
     }
 
-    override fun findClass(name: String): Class<*> =
+    override fun findClass(name: String): Class<*>? =
         loadLocalClass(name) ?: super.findClass(name)
 
-    override fun findClass(moduleName: String?, name: String): Class<*> = findClass(name)
+    override fun findClass(moduleName: String?, name: String): Class<*>? = findClass(name)
 
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
-       return (loadLocalClass(name) ?: super.loadClass(name, false)).also { if(resolve) resolveClass(it) }
+       return (loadLocalClass(name) ?: super.loadClass(name, false))?.also { if(resolve) resolveClass(it) } ?: throw ClassNotFoundException(name)
     }
 
     private fun loadLocalClass(name: String) : Class<*>? {

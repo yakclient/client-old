@@ -63,12 +63,16 @@ public object ExtensionLoader {
             "Extension: '${settings.name}' contains a repository referencing maven local! Make sure this is removed in all production builds."
         )
 
-        val archive: ResolvedArchive = Archives.resolve(
+        val (archive, controller, module) = Archives.resolve(
             ref,
             loader,
             Archives.Resolvers.JPM_RESOLVER,
             (dependencies + parent.ref).toHashSet()
         )
+
+        archive.packages.forEach { p ->
+            controller.addOpens(module, p, YakClient::class.java.module)
+        }
 
         val ext: Extension =
             archive.classloader.loadClass(settings.extensionClass).getConstructor().newInstance() as Extension

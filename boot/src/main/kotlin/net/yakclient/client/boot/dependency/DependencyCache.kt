@@ -8,12 +8,14 @@ import net.yakclient.common.util.copyTo
 import net.yakclient.common.util.forEachBlocking
 import net.yakclient.common.util.make
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 import java.util.logging.Logger
 
-internal object DependencyCache {
-    private val cachePath = YakClient.settings.dependencyCacheLocation.toPath()
+public class DependencyCache(
+    private val cachePath : Path,
+) {
     private val cacheMeta = cachePath.resolve("dependencies-meta.json")
 
     private val logger: Logger = Logger.getLogger(DependencyCache::class.simpleName)
@@ -29,22 +31,22 @@ internal object DependencyCache {
         all = mapper.readValue<Set<CachedDependency>>(metaFile).associateByTo(ConcurrentHashMap()) { it.desc }
     }
 
-    fun getOrNull(d: Dependency.Descriptor): CachedDependency? = all[CachedDependency.Descriptor(d.artifact, d.version)]
+    public fun getOrNull(d: Dependency.Descriptor): CachedDependency? = all[CachedDependency.Descriptor(d.artifact, d.version)]
 
-    fun contains(d: Dependency.Descriptor): Boolean = all.contains(CachedDependency.Descriptor(d.artifact, d.version))
+    public fun contains(d: Dependency.Descriptor): Boolean = all.contains(CachedDependency.Descriptor(d.artifact, d.version))
 
-    class Transaction {
+    public inner class Transaction {
         private val toCache: MutableList<Dependency> = ArrayList()
 
-        fun submit(dependency: Dependency) {
+        public fun submit(dependency: Dependency) {
             toCache.add(dependency)
         }
 
-        fun rollback() {
+        public fun rollback() {
             toCache.clear()
         }
 
-        suspend fun cache() {
+        public suspend fun cache() {
             toCache.forEach { cache(it) }
         }
 

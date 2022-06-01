@@ -6,29 +6,53 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import kotlinx.coroutines.runBlocking
 import net.yakclient.archives.ArchiveHandle
 import net.yakclient.archives.Archives
+import net.yakclient.archives.ResolutionResult
 import net.yakclient.archives.ResolvedArchive
+import net.yakclient.archives.jpm.JpmResolutionResult
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.dependency.*
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionLoader
+import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
+import net.yakclient.client.boot.loader.ClConglomerate
 import net.yakclient.client.boot.maven.MAVEN
+import net.yakclient.client.boot.maven.MavenDescriptor
+import net.yakclient.client.boot.maven.URL_OPTION_NAME
+import net.yakclient.client.boot.repository.RepositoryFactory
+import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.common.util.*
 import net.yakclient.common.util.resource.SafeResource
 import java.nio.file.Path
 import java.util.*
 import java.util.logging.Level
+import kotlin.collections.HashSet
 
 public class ApiInternalExt : Extension() {
     private infix fun SafeResource.copyToBlocking(to: Path): Path = runBlocking { this@copyToBlocking copyTo to }
 
     override fun onLoad() {
-        val ext: ArchiveHandle = Archives.find(YakClient.settings.mcExtLocation, Archives.Finders.JPM_FINDER)
+        // Convert an operating system name to its type
+        fun String.osNameToType(): OsType? = when (this) {
+            "linux" -> OsType.UNIX
+            "windows" -> OsType.WINDOWS
+            "osx" -> OsType.OS_X
+            else -> null
+        }
 
+        // Convert an operating system type to its name
+        fun OsType.toOsName(): String = when (this) {
+            OsType.WINDOWS -> "windows"
+            OsType.OS_X -> "osx"
+            OsType.UNIX -> "linux"
+        }
+
+        // Read in the Minecraft Manifest
         val manifest = ObjectMapper().registerModule(KotlinModule())
             .readValue<ClientManifest>(YakClient.settings.clientJsonFile.toFile())
 
+        // Download jar
         val versionPath = YakClient.settings.minecraftPath resolve manifest.version
         val minecraftPath = versionPath resolve "minecraft-${manifest.version}.jar"
         if (minecraftPath.make()) {
@@ -37,7 +61,7 @@ public class ApiInternalExt : Extension() {
             client.toResource().copyToBlocking(minecraftPath)
         }
 
-
+        // Download mappings
         val mappingsPath = versionPath resolve "minecraft-mappings-${manifest.version}.txt"
         if (mappingsPath.make()) {
             val mappings = (manifest.downloads[ManifestDownloadType.CLIENT_MAPPINGS]
@@ -46,26 +70,10 @@ public class ApiInternalExt : Extension() {
         }
 
 
-        val overriddenNames = hashMapOf<String, String>()
-
-        val libNames: Map<String, String> = LazyMap(overriddenNames) { n ->
-            n.split(':').let { "${it[1]}-${it[2]}" }
-        }
-
         val libPath = versionPath resolve YakClient.settings.minecraftLibDir
-
         val nativesPath = libPath resolve YakClient.settings.minecraftNativesDir
 
-        val mcReference = Archives.find(minecraftPath, Archives.Finders.ZIP_FINDER)
-
-        val dependencies = manifest.libraries.filter { lib ->
-            fun String.osNameToType(): OsType? = when (this) {
-                "linux" -> OsType.UNIX
-                "windows" -> OsType.WINDOWS
-                "osx" -> OsType.OS_X
-                else -> null
-            }
-
+        val libraries: List<ClientLibrary> = manifest.libraries.filter { lib ->
             val allTypes = setOf(
                 OsType.OS_X,
                 OsType.WINDOWS,
@@ -75,7 +83,6 @@ public class ApiInternalExt : Extension() {
             val allowableOperatingSystems = if (lib.rules.isEmpty()) allTypes.toMutableSet() else lib.rules
                 .filter { it.action == LibraryRuleAction.ALLOW }
                 .flatMapTo(HashSet()) {
-
                     it.osName?.osNameToType()?.let(::listOf) ?: allTypes
                 }
 
@@ -86,101 +93,71 @@ public class ApiInternalExt : Extension() {
             allowableOperatingSystems.contains(OsType.type)
         }
 
-        val dependencyRefs = dependencies.mapBlocking {
-            val path = libPath resolve "${libNames[it.name]}.jar"
 
-
-            if (path.make()) {
-                logger.log(Level.INFO, "Downloading minecraft dependency: '${it.name}'")
-
-                it.downloads.artifact.url.toResource(
-                    HexFormat.of().parseHex(it.downloads.artifact.checksum)
-                ) copyTo path
-            }
-
-            Archives.find(
-                path,
-                Archives.Finders.ZIP_FINDER
-            )
-        }
-
-        fun OsType.toOsName(): String = when (this) {
-            OsType.WINDOWS -> "windows"
-            OsType.OS_X -> "osx"
-            OsType.UNIX -> "linux"
-        }
-
-        val nativeHandles = dependencies.mapNotNullBlocking { lib ->
+        val nativeHandles = libraries.mapNotNullBlocking { lib ->
             val (_, artifact, version) = lib.name.split(':')
 
             val native = lib.natives[OsType.type.toOsName()] ?: return@mapNotNullBlocking null
             val classifier = lib.downloads.classifiers[native] ?: return@mapNotNullBlocking null
 
             val jarName = "$artifact-$version-${native}.jar"
-            logger.log(Level.INFO, "Downloading minecraft native library : '$jarName'")
 
-            val path = nativesPath resolve jarName
+            val nativePath = nativesPath resolve jarName
+            if (nativePath.make()) {
+                logger.log(Level.INFO, "Downloading minecraft native library : '$jarName'")
+                classifier.toResource() copyTo nativePath
+            }
 
-            classifier.url.toResource(HexFormat.of().parseHex(classifier.checksum)) copyTo path
-
-            Archives.find(path, Archives.Finders.ZIP_FINDER)
+            Archives.find(nativePath, Archives.Finders.ZIP_FINDER)
         }
 
-//        val mappings =
-//            checkNotNull(Parsers[Parsers.PRO_GUARD]) { "ProGuard parser cannot be null!" }.parse(mappingsPath.toUri())
+        val results = ArrayList<JpmResolutionResult>()
 
-//        val classTo = mappings.classes.getByReal("net.minecraft.client.gui.screens.TitleScreen")!!
-//        val methodTo = classTo.methods.getByReal("render(Lcom/mojang/blaze3d/vertex/PoseStack;IIF)V")!!
-//
-//        val methodSignature = "${methodTo.fakeName}(${
-//            methodTo.parameters.joinToString(separator = "") { desc ->
-//                if (desc !is ClassTypeDescriptor) desc.descriptor else {
-//                    mappings.classes.getByReal(desc.classname)?.fakeName?.let { s -> "L$s;" } ?: desc.descriptor
-//                }
-//            }
-//        })${methodTo.returnType.descriptor}"
-//
-//        val config = Mixins.mixinOf(
-//            classTo.fakeName, TestTransformer::class.java.name, listOf(
-//                Mixins.InjectionMetaData(
-//                    Sources.of(TestTransformer::injectMain),
-//                    to = methodSignature,
-//                    type = InjectionType.AFTER_BEGIN
-//                ),
-//            )
-//        )
-//
-//        val entryName = "${classTo.fakeName.replace('.', '/')}.class"
-//        val entryToModify = mcReference.reader[entryName]!!
-//
-//        mcReference.writer.put(entryToModify.transform(config, dependencyRefs))
+        val resolver = YakClient.moduleResolver.orFallBackOn { handle, parents ->
+            val loader = ClConglomerate(
+                YakClient.loader,
+                (nativeHandles + handle).map(::ArchiveConglomerateProvider),
+                parents.map(::ArchiveComponent)
+            )
 
+            val result = Archives.resolve(handle, loader, Archives.Resolvers.JPM_RESOLVER, parents)
+            results.add(result)
 
-        val loader = MinecraftLoader(
-            this.loader,
-            (dependencyRefs + mcReference + nativeHandles).map(::ArchiveConglomerateProvider),
-        )
+            result.archive
+        }
 
-        val minecraft: List<ResolvedArchive> = Archives.resolve(dependencyRefs + mcReference, Archives.Resolvers.ZIP_RESOLVER) { loader }
+        val repoHandler = MinecraftRepository(libraries)
 
-        val resolver = DependencyResolutionBid { handle, _ ->
-            println(minecraft)
-            minecraft.find { it.name == handle.name }
-        }.orFallBackOn(YakClient.dependencyResolver)
+        val minecraftRepo = DependencyGraph.ofRepository(repoHandler, resolver)
 
-        val dependencyLoader = DependencyGraph.ofRepository(
-            RepositorySettings(
-                MAVEN,
-                mapOf("url" to "http://repo.yakclient.net/snapshots", "layout" to "snapshot")
-            ), resolver
-        )
+        val minecraftDependencies = libraries
+            .filterNot { it.name == "java-objc-bridge" }
+            .flatMap {
+                minecraftRepo.load(
+                    it.name,
+                    DependencyGraph.DependencySettings(excludes = hashSetOf("java-objc-bridge"))
+                )
+            }
 
-        dependencyLoader load "net.yakclient:graphics-api:1.0-SNAPSHOT"
-        dependencyLoader load "net.yakclient:graphics-util:1.0-SNAPSHOT"
-        dependencyLoader load "net.yakclient:graphics-lwjgl:1.0-SNAPSHOT"
-        dependencyLoader load "net.yakclient:graphics-lwjgl-components:1.0-SNAPSHOT"
-        dependencyLoader load "net.yakclient:graphics-lwjgl-util:1.0-SNAPSHOT"
-        dependencyLoader load "net.yakclient:graphics-components:1.0-SNAPSHOT"
+        val mcReference = Archives.find(minecraftPath, Archives.Finders.ZIP_FINDER)
+
+        val minecraft: ResolvedArchive = Archives.resolve(
+            mcReference,
+            MinecraftLoader(
+                this.loader,
+                minecraftDependencies.map(::ArchiveComponent),
+                mcReference
+            ),
+            Archives.Resolvers.ZIP_RESOLVER
+        ).archive
+
+        results.forEach { result ->
+            result.archive.packages.forEach { p ->
+                result.controller.addOpens(result.module, p, minecraft.classloader.unnamedModule)
+            }
+        }
+
+        val ext: ArchiveHandle = Archives.find(YakClient.settings.mcExtLocation, Archives.Finders.JPM_FINDER)
 
         val settings = ExtensionLoader.loadSettings(ext)
 
@@ -189,6 +166,7 @@ public class ApiInternalExt : Extension() {
             this,
             settings = settings,
             dependencies = ExtensionLoader.loadDependencies(settings)
-                .let { it.toMutableSet().also { m -> m.addAll(minecraft) } }).onLoad()
+                .let
+                { it.toMutableSet().also { m -> m.add(minecraft) } }).onLoad()
     }
 }

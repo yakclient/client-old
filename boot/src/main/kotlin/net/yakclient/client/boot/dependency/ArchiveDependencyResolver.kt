@@ -11,6 +11,6 @@ public open class ArchiveDependencyResolver : DependencyResolver {
     override fun invoke(archive: ArchiveHandle, dependants: Set<ResolvedArchive>): ResolvedArchive {
         val loader = ArchiveLoader(YakClient.loader, dependants.map(::ArchiveComponent), archive)
 
-       return Archives.resolve(archive, loader, Archives.Resolvers.JPM_RESOLVER, dependants)
+       return Archives.resolve(archive, loader, Archives.Resolvers.JPM_RESOLVER, dependants).archive
     }
 }

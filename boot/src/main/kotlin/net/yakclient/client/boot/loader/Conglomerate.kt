@@ -13,8 +13,9 @@ import kotlin.collections.HashSet
 
 public open class ClConglomerate(
     parent: ClassLoader,
-    private val providers: List<ConglomerateProvider>
-) : ClassLoader(parent), ClComponent {
+    private val providers: List<ConglomerateProvider>,
+    components: List<ClComponent>
+) : IntegratedLoader(parent, components), ClComponent {
     override val packages: Set<String> = providers.flatMapTo(HashSet(), ConglomerateProvider::packages)
 
     private fun <V, K> Iterable<V>.flatAssociateBy(transformer: (V) -> Iterable<K>): Map<K, V> =
@@ -30,14 +31,23 @@ public open class ClConglomerate(
 
     private val domain = ProtectionDomain(CodeSource(null, arrayOf<Certificate>()), null, this, null)
 
+    override fun findClass(name: String): Class<*>? =
+        loadLocalClass(name) ?: super.findClass(name)
+
+    override fun findClass(moduleName: String?, name: String): Class<*>? = findClass(name)
+
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
+        return (loadLocalClass(name) ?: super.loadClass(name, false))?.also { if (resolve) resolveClass(it) } ?: throw ClassNotFoundException(name)
+    }
+
+    private fun loadLocalClass(name: String) : Class<*>? {
         findLoadedClass(name)?.let { return it }
 
         val bb: ByteBuffer = packageMap[name.packageFormat]
             ?.firstNotNullOfOrNull { it.provideClass(name) }
-            ?: return super.loadClass(name, resolve)
+            ?: return null
 
-        return defineClass(name, bb, domain).also { if (resolve) resolveClass(it) }
+        return defineClass(name, bb, domain)
     }
 
     override fun findResources(name: String): Enumeration<URL> {

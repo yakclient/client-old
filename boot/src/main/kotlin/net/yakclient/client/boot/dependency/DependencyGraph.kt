@@ -16,19 +16,26 @@ import java.util.logging.Logger
 
 public object DependencyGraph {
     private val logger: Logger = Logger.getLogger(DependencyGraph::class.simpleName)
-    private val defaultResolver = YakClient.dependencyResolver
+    public val defaultResolver: DependencyResolver = YakClient.dependencyResolver
     private val graph: MutableMap<Dependency.Descriptor, DependencyNode> = HashMap()
+    private val defaultCache = DependencyCache(YakClient.settings.dependencyCacheLocation.toPath())
 
     public fun ofRepository(
-        settings: RepositorySettings, resolver: DependencyResolver = defaultResolver
-    ): DependencyLoader<*> = ofRepository(RepositoryFactory.create(settings), resolver)
+        settings: RepositorySettings,
+        resolver: DependencyResolver = defaultResolver,
+        cache: DependencyCache = defaultCache
+    ): DependencyLoader<*> = ofRepository(RepositoryFactory.create(settings), resolver, cache)
 
     public fun <T : Dependency.Descriptor> ofRepository(
-        handler: RepositoryHandler<T>, resolver: DependencyResolver
-    ): DependencyLoader<T> = DependencyLoader(handler, resolver)
+        handler: RepositoryHandler<T>,
+        resolver: DependencyResolver = defaultResolver,
+        cache: DependencyCache = defaultCache,
+    ): DependencyLoader<T> = DependencyLoader(handler, resolver, cache)
 
     public class DependencyLoader<D : Dependency.Descriptor> internal constructor(
-        private val repo: RepositoryHandler<D>, private val resolver: DependencyResolver = defaultResolver
+        private val repo: RepositoryHandler<D>,
+        private val resolver: DependencyResolver,
+        private val cache: DependencyCache
     ) {
         public fun load(name: String, settings: DependencySettings = DependencySettings()): List<ResolvedArchive> {
             return load(
@@ -37,14 +44,14 @@ public object DependencyGraph {
             )
         }
 
-        private fun load(desc: D, settings: DependencySettings): List<ResolvedArchive> =
+        public fun load(desc: D, settings: DependencySettings = DependencySettings()): List<ResolvedArchive> =
             runBlocking {
-                val transaction = DependencyCache.Transaction()
+                val transaction = cache.Transaction()
                 val cacheInternal = cacheInternal(desc, settings, transaction)
 
                 if (cacheInternal) {
                     transaction.cache()
-                    loadCached(DependencyCache.getOrNull(desc)!!).referenceOrChildren()
+                    loadCached(cache.getOrNull(desc)!!).referenceOrChildren()
                 } else {
                     transaction.rollback()
                     logger.log(Level.WARNING, "Failed to cache dependency : '${desc.toPrettyString()}'")
@@ -63,12 +70,15 @@ public object DependencyGraph {
 
             val resolved = CachedDependency.Descriptor(desc.artifact, desc.version)
 
-            return if (!graph.contains(resolved) && !DependencyCache.contains(resolved)) {
-                val dependency = repo.find(desc) ?: return false
+            return if (!graph.contains(resolved) && !cache.contains(resolved)) {
+                val dependency: Dependency = run {
+                    val d = repo.find(desc) ?: return false
 
-                if (!settings.isTransitive) {
-                    transaction.submit(dependency)
-                    return true
+                    val transitiveDependencies = d.dependants.filterNotTo(HashSet()) {
+                        settings.excludes.contains(it.desc.artifact)
+                    }.let { if (settings.isTransitive) it else hashSetOf() }
+
+                    Dependency(d.jar, transitiveDependencies, d.desc)
                 }
 
                 val jobs = dependency.dependants.mapNotBlocking { d ->
@@ -76,7 +86,7 @@ public object DependencyGraph {
 
                     d.possibleRepos.any { r ->
                         val loader = (if (r == repo.settings) this else DependencyLoader(
-                            RepositoryFactory.create(r), resolver
+                            RepositoryFactory.create(r), resolver, cache
                         )) as DependencyLoader<Dependency.Descriptor>
 
                         loader.cacheInternal(d.desc, settings, DependencyTrace(trace, dependency.desc), transaction)
@@ -87,7 +97,7 @@ public object DependencyGraph {
 
                 if (failed.isNotEmpty()) {
                     logger.log(
-                        Level.WARNING, "Failed caching dependencies : ${
+                        Level.WARNING, "Failed to cache dependencies : ${
                             failed.joinToString(transform = Dependency.Descriptor::toPrettyString)
                         }, Dependency trace was: ${trace.toPrettyString(dependency)}. "
                     )
@@ -107,7 +117,7 @@ public object DependencyGraph {
             if (graph.contains(desc)) return graph[desc]!!
 
             val cachedDeps: List<CachedDependency> =
-                cached.dependants.map { DependencyCache.getOrNull(it) }.takeUnless { it.any { d -> d == null } }
+                cached.dependants.map { cache.getOrNull(it) }.takeUnless { it.any { d -> d == null } }
                     ?.filterNotNull()
                     ?: throw IllegalStateException("Cached dependency: '${desc.toPrettyString()}' should already have all dependencies cached!")
 
@@ -140,6 +150,7 @@ public object DependencyGraph {
 
     public data class DependencySettings(
         val isTransitive: Boolean = true,
+        val excludes: Set<String> = hashSetOf(), // List of artifacts to exclude
     )
 }
 

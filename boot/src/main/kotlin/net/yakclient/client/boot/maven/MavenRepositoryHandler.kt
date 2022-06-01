@@ -65,6 +65,5 @@ internal open class MavenRepositoryHandler(
         )
     }
 
-    override fun loadDescription(dep: String): MavenDescriptor? =
-        dep.split(':').takeIf { it.size == 3 || it.size == 2 }?.let { MavenDescriptor(it[0], it[1], it[2]) }
+    override fun loadDescription(dep: String): MavenDescriptor? = MavenDescriptor.parseDescription(dep)
 }

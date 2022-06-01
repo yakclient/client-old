@@ -1,16 +1,18 @@
 package net.yakclient.client.api.internal
 
-import net.yakclient.client.boot.loader.ClConglomerate
-import net.yakclient.client.boot.loader.ConglomerateProvider
-import java.net.URL
-import java.nio.file.Path
+import net.yakclient.archives.ArchiveHandle
+import net.yakclient.client.boot.loader.ArchiveLoader
+import net.yakclient.client.boot.loader.ClComponent
 
 internal class MinecraftLoader(
     parent: ClassLoader,
-    providers: List<ConglomerateProvider>,
+//    providers: List<ConglomerateProvider>,
+    components: List<ClComponent>,
+    minecraft: ArchiveHandle,
+
 //    private val nativeEnding: String,
 //    private val natives: Map<String, Path>
-) : ClConglomerate(parent, providers) {
+) : ArchiveLoader(parent, components, minecraft) {
 //    override fun findLibrary(libname: String): String {
 //        return natives["lib$libname.$nativeEnding"]?.toAbsolutePath()?.toString() ?: super.findLibrary(libname)
 //    }

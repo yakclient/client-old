@@ -7,7 +7,6 @@ class TestOsType {
     @Test
     fun `Test Os Type`() {
         val type = OsType.type
-        assert(type != OsType.UNKNOWN)
         println(type)
     }
 }

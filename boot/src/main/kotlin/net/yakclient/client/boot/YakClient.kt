@@ -32,19 +32,20 @@ public object YakClient : Extension() {
     internal var innited: Boolean = false
     public var settings: BootSettings by immutableLateInit()
     public var yakDir: Path by immutableLateInit()
-    public val dependencyResolver: DependencyResolver =
-        object : DependencyResolutionFallBack(ArchiveDependencyResolver()) {
-            override fun resolve(ref: ArchiveHandle, dependants: Set<ResolvedArchive>): ResolvedArchive? {
-                if (ref.name == null) return null
-                val name = when (ref.name) {
-                    "javaee.api" -> "java.xml"
-                    else -> ref.name
-                }
-
-                return JpmArchives.moduleToArchive(ModuleLayer.boot().findModule(name).orElseGet { null } ?: return null)
-            }
+    public val moduleResolver: DependencyResolutionBid = DependencyResolutionBid { ref, _ ->
+        if (ref.name == null) return@DependencyResolutionBid null
+        val name = when (ref.name) {
+            "javaee.api" -> "java.xml"
+            "slf4j.api" -> "org.slf4j"
+            "activation" -> "jakarta.activation"
+            "asm" -> "org.objectweb.asm"
+            else -> ref.name
         }
 
+        JpmArchives.moduleToArchive(ModuleLayer.boot().findModule(name).orElseGet { null } ?: return@DependencyResolutionBid null)
+    }
+
+    public val dependencyResolver: DependencyResolver = moduleResolver.orFallBackOn(ArchiveDependencyResolver())
 
     public fun exit(e: Exception, extra: String = "A critical error has occurred"): Nothing {
         logger.log(Level.SEVERE, extra)
@@ -103,26 +104,26 @@ public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
     RepositoryFactory.add(InternalRepoProvider())
     MavenLayoutFactory.add(InternalLayoutProvider())
 
-    val dl = DependencyGraph.DependencyLoader(
-        RepositoryFactory.create(
-            RepositorySettings(MAVEN_CENTRAL)
-        ),
-        dependencyResolver
-    )
+//    val dl = DependencyGraph.DependencyLoader(
+//        RepositoryFactory.create(
+//            RepositorySettings(MAVEN_CENTRAL)
+//        ),
+//        dependencyResolver
+//    )
 
-    if (scope.equalsAny(InitScope.PRODUCTION, InitScope.DEVELOPMENT)) {
-        dl load "org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4"
-        dl load "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1"
-        dl load "org.jetbrains.kotlin:kotlin-reflect:1.6.0"
-        dl load "io.github.config4k:config4k:0.4.2"
-        dl load "com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6"
-        dl load "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.6"
-        dl load "org.jetbrains.kotlin:kotlin-stdlib-common:2.0.0-beta-1"
-        dl load "io.ktor:ktor-client-cio:2.0.0"
-        dl load "net.yakclient:archives:1.0-SNAPSHOT"
-        dl load "org.jetbrains.kotlin:kotlin-stdlib:1.6.21"
-        dl load "org.jetbrains.kotlin:kotlin-reflect:1.6.21"
-        dl load "net.yakclient:common-util:1.0-SNAPSHOT"
-    }
+//    if (scope.equalsAny(InitScope.PRODUCTION, InitScope.DEVELOPMENT)) {
+//        dl load "org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4"
+//        dl load "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1"
+//        dl load "org.jetbrains.kotlin:kotlin-reflect:1.6.0"
+//        dl load "io.github.config4k:config4k:0.4.2"
+//        dl load "com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6"
+//        dl load "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.6"
+//        dl load "org.jetbrains.kotlin:kotlin-stdlib-common:2.0.0-beta-1"
+//        dl load "io.ktor:ktor-client-cio:2.0.0"
+//        dl load "net.yakclient:archives:1.0-SNAPSHOT"
+//        dl load "org.jetbrains.kotlin:kotlin-stdlib:1.6.21"
+//        dl load "org.jetbrains.kotlin:kotlin-reflect:1.6.21"
+//        dl load "net.yakclient:common-util:1.0-SNAPSHOT"
+//    }
 }
 

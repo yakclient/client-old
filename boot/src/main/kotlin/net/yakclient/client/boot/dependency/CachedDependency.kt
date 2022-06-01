@@ -4,13 +4,26 @@ import java.nio.file.Path
 import kotlin.reflect.full.isSuperclassOf
 
 
-internal data class CachedDependency(
+public data class CachedDependency(
     val path: Path?,
     val dependants: List<Descriptor>,
     val desc: Descriptor
 ) {
-    internal data class Descriptor(
+    public data class Descriptor(
         override val artifact: String,
         override val version: String?
-    ) : Dependency.Descriptor
+    ) : Dependency.Descriptor {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Descriptor) return false
+
+            if (artifact != other.artifact) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return artifact.hashCode()
+        }
+    }
 }

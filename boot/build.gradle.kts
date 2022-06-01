@@ -12,7 +12,7 @@ configurations.all {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
-    implementation("io.ktor:ktor-client-cio:2.0.0")
+//    implementation("io.ktor:ktor-client-cio:2.0.0")
     api("net.yakclient:archives:1.0-SNAPSHOT") {
         isChanging = true
     }
@@ -35,7 +35,7 @@ application {
         "--add-exports",
         "kotlin.reflect/kotlin.reflect.jvm.internal=com.fasterxml.jackson.kotlin",
         "-Xms512m",
-        "-Xmx2G",
+        "-Xmx4G",
         "-XX:+UnlockExperimentalVMOptions",
         "-XX:+UseG1GC",
         "-XX:G1NewSizePercent=20",
