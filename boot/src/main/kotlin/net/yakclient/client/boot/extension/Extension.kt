@@ -1,12 +1,13 @@
 package net.yakclient.client.boot.extension
 
 import net.yakclient.archives.ResolvedArchive
+import net.yakclient.client.boot.container.ContainerProcess
 import net.yakclient.client.boot.exception.AlreadyInitializedException
 import net.yakclient.common.util.immutableLateInit
 import java.util.logging.Logger
 import kotlin.properties.Delegates
 
-public abstract class Extension {
+public abstract class Extension : ContainerProcess {
     private var initialized: Boolean = false
 
     public var parent: Extension? by Delegates.vetoable(null) { _, _, _ -> !initialized }
@@ -26,6 +27,8 @@ public abstract class Extension {
 
         initialized = true
     }
+
+    final override fun start(): Unit = onLoad()
 
     public open fun onLoad() {}
 

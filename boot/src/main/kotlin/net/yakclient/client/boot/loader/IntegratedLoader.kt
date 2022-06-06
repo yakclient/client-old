@@ -1,8 +1,8 @@
 package net.yakclient.client.boot.loader
 
 public abstract class IntegratedLoader(
-    parent: ClassLoader,
-    private val _components: List<ClComponent>
+    _components: List<ClComponent>,
+    parent: ClassLoader
 ) : ClassLoader(parent) {
     private val componentPackages: Map<String, ClComponent> =
         _components.flatMap { c -> c.packages.map { it to c } }.associate { it }

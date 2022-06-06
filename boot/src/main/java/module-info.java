@@ -23,29 +23,25 @@ module yakclient.client.boot {
     requires java.instrument;
     requires jdk.attach;
     requires java.sql;
-//    requires ktor.client.core.jvm;
-//    requires ktor.client.cio.jvm;
 
     exports net.yakclient.client.boot;
     exports net.yakclient.client.boot.extension;
-    exports net.yakclient.client.boot.lifecycle;
     exports net.yakclient.client.boot.exception;
     exports net.yakclient.client.boot.dependency;
     exports net.yakclient.client.boot.repository;
     exports net.yakclient.client.boot.loader;
     exports net.yakclient.client.boot.maven.layout;
+    exports net.yakclient.client.boot.container;
+    exports net.yakclient.client.boot.container.security;
 
     exports net.yakclient.client.boot.internal to java.base; // Service loading
     exports net.yakclient.client.boot.maven;
-//            to
-//            kotlin.reflect, // For config parsing
-//            com.fasterxml.jackson.databind, // For xml and Json parsing
-//            yakclient.client.api.internal; // Use of custom repositories
 
     opens net.yakclient.client.boot.repository to kotlin.reflect; // For kotlin CLI
     opens net.yakclient.client.boot.internal to java.base; // For service instantiation
-    opens net.yakclient.client.boot.maven to com.fasterxml.jackson.databind; // For xml and Json parsing
+    opens net.yakclient.client.boot.maven to com.fasterxml.jackson.databind; // For xml and Json parsing \/
     opens net.yakclient.client.boot.dependency to com.fasterxml.jackson.databind;
+    opens net.yakclient.client.boot.container to com.fasterxml.jackson.databind;
 
     uses RepositoryProvider;
     uses MavenLayoutProvider;

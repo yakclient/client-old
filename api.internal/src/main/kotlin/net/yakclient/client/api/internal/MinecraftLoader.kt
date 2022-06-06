@@ -8,4 +8,4 @@ internal class MinecraftLoader(
     parent: ClassLoader,
     components: List<ClComponent>,
     minecraft: ArchiveHandle,
-) : ArchiveLoader(parent, components, minecraft)
+) : ArchiveLoader(minecraft, components, parent)

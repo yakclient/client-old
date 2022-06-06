@@ -2,19 +2,19 @@ package net.yakclient.client.boot.test.archive
 
 import net.yakclient.client.boot.InitScope
 import net.yakclient.client.boot.init
+import net.yakclient.client.util.child
+import net.yakclient.client.util.parent
+import net.yakclient.client.util.workingDir
 import net.yakclient.common.util.*
-import java.io.File
 import java.lang.module.Configuration
 import java.lang.module.ModuleDescriptor
 import java.lang.module.ModuleFinder
 import java.lang.module.ModuleReference
 import java.net.URI
 import java.nio.ByteBuffer
-import java.nio.file.FileSystems
 import java.security.CodeSource
 import java.security.ProtectionDomain
 import java.security.cert.Certificate
-import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import kotlin.test.BeforeTest
 import kotlin.test.Test

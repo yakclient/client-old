@@ -24,6 +24,7 @@ public class DependencyCache(
     private val mapper: ObjectMapper = ObjectMapper().registerModule(KotlinModule())
 
     init {
+
         val metaFile = cacheMeta.toFile()
 
         if (cacheMeta.make()) metaFile.writeText(mapper.writeValueAsString(setOf<CachedDependency>()))

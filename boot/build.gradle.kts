@@ -42,8 +42,13 @@ application {
         "-XX:G1ReservePercent=20",
         "-XX:MaxGCPauseMillis=50",
         "-XX:G1HeapRegionSize=32M",
-        "-XstartOnFirstThread"
+        "-XstartOnFirstThread",
+        "-Djava.security.manager=allow"
     )
+}
+
+tasks.test {
+    systemProperty("java.security.manager", "allow")
 }
 
 tasks.run.get().workingDir = project.parent!!.rootDir.toPath().resolve("workingDir").toFile()

@@ -5,26 +5,30 @@ import io.github.config4k.extract
 import io.github.config4k.registerCustomType
 import kotlinx.cli.ArgParser
 import kotlinx.cli.required
-import net.yakclient.archives.ArchiveHandle
+import net.yakclient.archives.Archives
 import net.yakclient.archives.JpmArchives
-import net.yakclient.archives.ResolvedArchive
-import net.yakclient.client.boot.YakClient.dependencyResolver
-import net.yakclient.client.boot.dependency.*
+import net.yakclient.client.boot.container.ContainerLoader
+import net.yakclient.client.boot.container.VolumeStore
+import net.yakclient.client.boot.container.security.allPrivileges
+import net.yakclient.client.boot.dependency.ArchiveDependencyResolver
+import net.yakclient.client.boot.dependency.DependencyResolutionBid
+import net.yakclient.client.boot.dependency.DependencyResolver
+import net.yakclient.client.boot.dependency.orFallBackOn
 import net.yakclient.client.boot.extension.Extension
+import net.yakclient.client.boot.extension.ExtensionInfo
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.internal.InternalLayoutProvider
 import net.yakclient.client.boot.internal.InternalRepoProvider
-import net.yakclient.client.boot.maven.MAVEN_CENTRAL
+import net.yakclient.client.boot.internal.volume.RootVolume
 import net.yakclient.client.boot.maven.layout.MavenLayoutFactory
 import net.yakclient.client.boot.repository.RepositoryFactory
-import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.PathArgument
 import net.yakclient.client.util.UriCustomType
-import net.yakclient.common.util.*
-import net.yakclient.common.util.resource.SafeResource
+import net.yakclient.common.util.deleteAll
+import net.yakclient.common.util.immutableLateInit
+import net.yakclient.common.util.resolve
 import java.nio.file.Path
-import java.nio.file.Paths
-import java.security.Permission
+import java.security.Policy
 import java.util.logging.Level
 import kotlin.system.exitProcess
 
@@ -42,7 +46,8 @@ public object YakClient : Extension() {
             else -> ref.name
         }
 
-        JpmArchives.moduleToArchive(ModuleLayer.boot().findModule(name).orElseGet { null } ?: return@DependencyResolutionBid null)
+        JpmArchives.moduleToArchive(ModuleLayer.boot().findModule(name).orElseGet { null }
+            ?: return@DependencyResolutionBid null)
     }
 
     public val dependencyResolver: DependencyResolver = moduleResolver.orFallBackOn(ArchiveDependencyResolver())
@@ -53,9 +58,6 @@ public object YakClient : Extension() {
         e.printStackTrace()
         exitProcess(1)
     }
-
-    internal fun loadResource(name: String): SafeResource? =
-        YakClient::class.java.getResource(name)?.let { Paths.get(it.toURI()) }?.toResource()
 }
 
 private const val SETTINGS_NAME = "settings.conf"
@@ -70,14 +72,22 @@ public fun main(args: Array<String>) {
     init(yakDirectory)
 
     val run = runCatching {
-        ExtensionLoader.load(YakClient.settings.apiLocation, YakClient).onLoad()
+        ContainerLoader.load(
+            ExtensionInfo(
+                Archives.find(YakClient.settings.apiLocation, Archives.Finders.JPM_FINDER),
+                YakClient,
+            ),
+            ExtensionLoader,
+            VolumeStore["api-data"],
+            allPrivileges(),
+            YakClient.loader
+        ).process.start()
     }
 
     if (run.isFailure) {
         YakClient.logger.log(Level.INFO, "Error occurred, Exiting gracefully")
         run.exceptionOrNull()!!.printStackTrace(System.err)
     } else YakClient.logger.log(Level.INFO, "Successfully Quit")
-
 }
 
 public enum class InitScope {
@@ -86,7 +96,11 @@ public enum class InitScope {
     TEST
 }
 
+@SuppressWarnings("removal")
 public fun init(yakDir: Path, scope: InitScope = InitScope.DEVELOPMENT) {
+    Policy.setPolicy(BasicPolicy())
+    System.setSecurityManager(SecurityManager())
+
     if (YakClient.innited) return
     YakClient.innited = true
 

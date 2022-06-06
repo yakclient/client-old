@@ -9,14 +9,20 @@ import net.yakclient.archives.Archives
 import net.yakclient.archives.ResolvedArchive
 import net.yakclient.archives.jpm.JpmResolutionResult
 import net.yakclient.client.boot.YakClient
+import net.yakclient.client.boot.container.ContainerLoader
+import net.yakclient.client.boot.container.VolumeStore
+import net.yakclient.client.boot.container.security.allPrivileges
 import net.yakclient.client.boot.dependency.*
 import net.yakclient.client.boot.extension.Extension
+import net.yakclient.client.boot.extension.ExtensionInfo
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.loader.ArchiveComponent
-import net.yakclient.client.boot.loader.ArchiveConglomerateProvider
+import net.yakclient.client.boot.loader.ArchiveSourceProvider
 import net.yakclient.client.boot.loader.ClConglomerate
 import net.yakclient.common.util.*
 import net.yakclient.common.util.resource.SafeResource
+import java.io.FilePermission
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import java.util.logging.Level
@@ -45,6 +51,10 @@ public class ApiInternalExt : Extension() {
         val manifest = ObjectMapper().registerModule(KotlinModule())
             .readValue<ClientManifest>(YakClient.settings.clientJsonFile.toFile())
 
+
+        System.getSecurityManager().checkPermission(FilePermission("<<ALL FILES>>", "read,write,delete"))
+        Files.createTempFile("Yay", "txt")
+
         // Download jar
         val versionPath = YakClient.settings.minecraftPath resolve manifest.version
         val minecraftPath = versionPath resolve "minecraft-${manifest.version}.jar"
@@ -69,18 +79,13 @@ public class ApiInternalExt : Extension() {
         // Load libraries, from manifest
         val libraries: List<ClientLibrary> = manifest.libraries.filter { lib ->
             val allTypes = setOf(
-                OsType.OS_X,
-                OsType.WINDOWS,
-                OsType.UNIX
+                OsType.OS_X, OsType.WINDOWS, OsType.UNIX
             )
 
-            val allowableOperatingSystems =
-                if (lib.rules.isEmpty()) allTypes.toMutableSet()
-                else lib.rules
-                    .filter { it.action == LibraryRuleAction.ALLOW }
-                    .flatMapTo(HashSet()) {
-                        it.osName?.osNameToType()?.let(::listOf) ?: allTypes
-                    }
+            val allowableOperatingSystems = if (lib.rules.isEmpty()) allTypes.toMutableSet()
+            else lib.rules.filter { it.action == LibraryRuleAction.ALLOW }.flatMapTo(HashSet()) {
+                    it.osName?.osNameToType()?.let(::listOf) ?: allTypes
+                }
 
             lib.rules.filter { it.action == LibraryRuleAction.DISALLOW }.forEach {
                 it.osName?.osNameToType()?.let(allowableOperatingSystems::remove)
@@ -114,13 +119,11 @@ public class ApiInternalExt : Extension() {
         val resolver = YakClient.moduleResolver.orFallBackOn { handle, parents ->
             val loader = ClConglomerate(
                 YakClient.loader,
-                (nativeHandles + handle).map(::ArchiveConglomerateProvider),
+                (nativeHandles + handle).map(::ArchiveSourceProvider),
                 parents.map(::ArchiveComponent)
             )
 
-            Archives.resolve(handle, loader, Archives.Resolvers.JPM_RESOLVER, parents)
-                .also(results::add)
-                .archive
+            Archives.resolve(handle, loader, Archives.Resolvers.JPM_RESOLVER, parents).also(results::add).archive
         }
 
         // Repository Handler
@@ -129,12 +132,9 @@ public class ApiInternalExt : Extension() {
         val dependencyLoader = DependencyGraph.ofRepository(repoHandler, resolver, DependencyCache(libPath))
 
         // Loads minecraft dependencies
-        val minecraftDependencies = libraries
-            .filterNot { it.name.contains("java-objc-bridge") }
-            .flatMap {
+        val minecraftDependencies = libraries.filterNot { it.name.contains("java-objc-bridge") }.flatMap {
                 dependencyLoader.load(
-                    it.name,
-                    DependencyGraph.DependencySettings(excludes = hashSetOf("java-objc-bridge"))
+                    it.name, DependencyGraph.DependencySettings(excludes = hashSetOf("java-objc-bridge"))
                 )
             }
 
@@ -143,13 +143,9 @@ public class ApiInternalExt : Extension() {
 
         // Resolves reference
         val minecraft: ResolvedArchive = Archives.resolve(
-            mcReference,
-            MinecraftLoader(
-                this.loader,
-                minecraftDependencies.map(::ArchiveComponent),
-                mcReference
-            ),
-            Archives.Resolvers.ZIP_RESOLVER
+            mcReference, MinecraftLoader(
+                this.loader, minecraftDependencies.map(::ArchiveComponent), mcReference
+            ), Archives.Resolvers.ZIP_RESOLVER
         ).archive
 
         // Opens all dependency packages to minecraft
@@ -166,16 +162,20 @@ public class ApiInternalExt : Extension() {
         val settings = ExtensionLoader.loadSettings(ext)
 
         // Loads the extension
-        val extension = ExtensionLoader.load(
-            ext,
-            this,
-            settings,
-            ExtensionLoader.loadDependencies(settings).let {
-                it.toMutableSet().also { m -> m.add(minecraft) }
-            }
-        )
 
-        // Initializes the extension
-        extension.onLoad()
+        ContainerLoader.load(
+            ExtensionInfo(
+                ext,
+                this,
+                settings,
+                ExtensionLoader.loadDependencies(settings).let {
+                    it.toMutableSet().also { m -> m.add(minecraft) }
+                }
+            ),
+            ExtensionLoader,
+            VolumeStore["api-data"],
+            allPrivileges(),
+            loader
+        ).process.start()
     }
 }
