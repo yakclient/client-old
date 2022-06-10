@@ -1,4 +1,4 @@
 package net.yakclient.client.extension
 
-public interface ExtensionPod {
+public data class ExtensionPod {
 }

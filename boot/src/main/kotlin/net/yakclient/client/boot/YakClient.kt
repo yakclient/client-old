@@ -8,8 +8,8 @@ import kotlinx.cli.required
 import net.yakclient.archives.Archives
 import net.yakclient.archives.JpmArchives
 import net.yakclient.client.boot.container.ContainerLoader
-import net.yakclient.client.boot.container.VolumeStore
-import net.yakclient.client.boot.container.security.allPrivileges
+import net.yakclient.client.boot.container.security.PrivilegeManager
+import net.yakclient.client.boot.container.volume.*
 import net.yakclient.client.boot.dependency.ArchiveDependencyResolver
 import net.yakclient.client.boot.dependency.DependencyResolutionBid
 import net.yakclient.client.boot.dependency.DependencyResolver
@@ -72,14 +72,19 @@ public fun main(args: Array<String>) {
     init(yakDirectory)
 
     val run = runCatching {
+        val volume = VolumeStore["api-data"]
+
         ContainerLoader.load(
             ExtensionInfo(
                 Archives.find(YakClient.settings.apiLocation, Archives.Finders.JPM_FINDER),
                 YakClient,
             ),
             ExtensionLoader,
-            VolumeStore["api-data"],
-            allPrivileges(),
+            VolumeRouter(volume, RouterRules(
+                RouterRules.Rule(VolumeClassifier(volume), volume),
+                RouterRules.Rule(ClassPathClassifier, RootVolume)
+            )),
+            PrivilegeManager.allPrivileges(),
             YakClient.loader
         ).process.start()
     }

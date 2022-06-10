@@ -1,6 +1,7 @@
 package net.yakclient.client.boot.container
 
-import net.yakclient.client.boot.container.security.PrivilegeList
+import net.yakclient.client.boot.container.security.Privileges
+import net.yakclient.client.boot.container.volume.ContainerVolume
 import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveSourceProvider
 import net.yakclient.client.boot.loader.ContainerClassLoader
@@ -10,7 +11,7 @@ public object ContainerLoader {
         info: T,
         loader: ProcessLoader<T>,
         volume: ContainerVolume,
-        privileges: PrivilegeList,
+        privileges: Privileges,
         parent: ClassLoader,
     ): Container {
         val handle = ContainerHandle()

@@ -1,15 +1,15 @@
 package net.yakclient.client.boot.internal.fs
 
-import net.yakclient.client.boot.container.callerContainer
 import net.yakclient.client.boot.internal.volume.VolumeAwarePath
 import java.nio.file.*
 import java.nio.file.attribute.UserPrincipalLookupService
 import java.nio.file.spi.FileSystemProvider
 
-internal class VolumeAwareFileSystem(
+internal class DerivedFileSystem(
     private val delegate: FileSystem,
     private val provider: FileSystemProvider,
     private val normalizer: PathNormalizer,
+    private val root: String,
 ) : FileSystem() {
     override fun close(): Unit = delegate.close()
 
@@ -28,9 +28,9 @@ internal class VolumeAwareFileSystem(
     override fun supportedFileAttributeViews(): MutableSet<String> = delegate.supportedFileAttributeViews()
 
     override fun getPath(first: String, vararg more: String?): Path {
-        val container = callerContainer() ?: return VolumeAwarePath( delegate.getPath(first, *more), this, normalizer)
+        val basePath = delegate.getPath(first, *more)
 
-        return container.volume.fs.getPath(first, *more)
+        return VolumeAwarePath(delegate.getPath(root, basePath.toString()), this, normalizer)
     }
 
     override fun getPathMatcher(syntaxAndPattern: String?): PathMatcher = delegate.getPathMatcher(syntaxAndPattern)

@@ -10,23 +10,28 @@ import net.yakclient.archives.ResolvedArchive
 import net.yakclient.archives.jpm.JpmResolutionResult
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.container.ContainerLoader
-import net.yakclient.client.boot.container.VolumeStore
-import net.yakclient.client.boot.container.security.allPrivileges
-import net.yakclient.client.boot.dependency.*
+import net.yakclient.client.boot.container.security.ContainerPermissionPrivilege
+import net.yakclient.client.boot.container.security.FileAction
+import net.yakclient.client.boot.container.security.FilePrivilege
+import net.yakclient.client.boot.container.security.PrivilegeManager
+import net.yakclient.client.boot.container.volume.VolumeStore
+import net.yakclient.client.boot.dependency.DependencyCache
+import net.yakclient.client.boot.dependency.DependencyGraph
+import net.yakclient.client.boot.dependency.orFallBackOn
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionInfo
 import net.yakclient.client.boot.extension.ExtensionLoader
 import net.yakclient.client.boot.loader.ArchiveComponent
 import net.yakclient.client.boot.loader.ArchiveSourceProvider
 import net.yakclient.client.boot.loader.ClConglomerate
-import net.yakclient.common.util.*
+import net.yakclient.common.util.copyTo
+import net.yakclient.common.util.make
+import net.yakclient.common.util.mapNotNullBlocking
+import net.yakclient.common.util.resolve
 import net.yakclient.common.util.resource.SafeResource
-import java.io.FilePermission
-import java.nio.file.Files
 import java.nio.file.Path
-import java.util.*
+import java.util.PropertyPermission
 import java.util.logging.Level
-import kotlin.collections.HashSet
 
 public class ApiInternalExt : Extension() {
     private infix fun SafeResource.copyToBlocking(to: Path): Path = runBlocking { this@copyToBlocking copyTo to }
@@ -51,9 +56,6 @@ public class ApiInternalExt : Extension() {
         val manifest = ObjectMapper().registerModule(KotlinModule())
             .readValue<ClientManifest>(YakClient.settings.clientJsonFile.toFile())
 
-
-        System.getSecurityManager().checkPermission(FilePermission("<<ALL FILES>>", "read,write,delete"))
-        Files.createTempFile("Yay", "txt")
 
         // Download jar
         val versionPath = YakClient.settings.minecraftPath resolve manifest.version
@@ -84,8 +86,8 @@ public class ApiInternalExt : Extension() {
 
             val allowableOperatingSystems = if (lib.rules.isEmpty()) allTypes.toMutableSet()
             else lib.rules.filter { it.action == LibraryRuleAction.ALLOW }.flatMapTo(HashSet()) {
-                    it.osName?.osNameToType()?.let(::listOf) ?: allTypes
-                }
+                it.osName?.osNameToType()?.let(::listOf) ?: allTypes
+            }
 
             lib.rules.filter { it.action == LibraryRuleAction.DISALLOW }.forEach {
                 it.osName?.osNameToType()?.let(allowableOperatingSystems::remove)
@@ -133,10 +135,10 @@ public class ApiInternalExt : Extension() {
 
         // Loads minecraft dependencies
         val minecraftDependencies = libraries.filterNot { it.name.contains("java-objc-bridge") }.flatMap {
-                dependencyLoader.load(
-                    it.name, DependencyGraph.DependencySettings(excludes = hashSetOf("java-objc-bridge"))
-                )
-            }
+            dependencyLoader.load(
+                it.name, DependencyGraph.DependencySettings(excludes = hashSetOf("java-objc-bridge"))
+            )
+        }
 
         // Loads minecraft reference
         val mcReference = Archives.find(minecraftPath, Archives.Finders.ZIP_FINDER)
@@ -174,7 +176,7 @@ public class ApiInternalExt : Extension() {
             ),
             ExtensionLoader,
             VolumeStore["api-data"],
-            allPrivileges(),
+            PrivilegeManager.allPrivileges(),
             loader
         ).process.start()
     }

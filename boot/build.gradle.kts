@@ -43,7 +43,8 @@ application {
         "-XX:MaxGCPauseMillis=50",
         "-XX:G1HeapRegionSize=32M",
         "-XstartOnFirstThread",
-        "-Djava.security.manager=allow"
+        "-Djava.security.manager=allow",
+//        "-Djava.nio.file.spi.DefaultFileSystemProvider=net.yakclient.client.boot.internal.fs.VolumeAwareFileSystemProvider"
     )
 }
 

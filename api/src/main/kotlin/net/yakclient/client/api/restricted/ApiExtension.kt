@@ -3,8 +3,8 @@ package net.yakclient.client.api.restricted
 import net.yakclient.archives.Archives
 import net.yakclient.client.boot.YakClient
 import net.yakclient.client.boot.container.ContainerLoader
-import net.yakclient.client.boot.container.VolumeStore
-import net.yakclient.client.boot.container.security.allPrivileges
+import net.yakclient.client.boot.container.security.PrivilegeManager
+import net.yakclient.client.boot.container.volume.VolumeStore
 import net.yakclient.client.boot.extension.Extension
 import net.yakclient.client.boot.extension.ExtensionInfo
 import net.yakclient.client.boot.extension.ExtensionLoader
@@ -18,7 +18,7 @@ public class ApiExtension : Extension() {
             ),
             ExtensionLoader,
             VolumeStore["api-data"],
-            allPrivileges(),
+            PrivilegeManager.allPrivileges(),
             loader
         ).process.start()
 //        ExtensionLoader.load(YakClient.settings.apiInternalLocation, this).onLoad()

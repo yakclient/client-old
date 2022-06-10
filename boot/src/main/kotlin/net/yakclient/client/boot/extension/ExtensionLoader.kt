@@ -42,16 +42,6 @@ public object ExtensionLoader : ProcessLoader<ExtensionInfo> {
         ref.reader["ext-settings.conf"]?.resource?.uri?.toConfig()?.extract<BasicExtensionSettings>("loader")
             ?: throw IllegalStateException("Failed to find or read ext-settings.conf file in module: ${ref.location.path}!")
 
-//    @JvmStatic
-//    public fun load(
-//        path: Path,
-//        parent: Extension,
-//    ): Extension {
-//        val ref = Archives.find(path, Archives.Finders.JPM_FINDER)
-//        val settings = loadSettings(ref)
-//        return load(ExtensionInfo(ref, parent, settings, loadDependencies(settings)))
-//    }
-
     override fun load(
         info: ExtensionInfo, loader: ClassLoader,
     ): Extension {

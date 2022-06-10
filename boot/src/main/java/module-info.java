@@ -33,6 +33,8 @@ module yakclient.client.boot {
     exports net.yakclient.client.boot.maven.layout;
     exports net.yakclient.client.boot.container;
     exports net.yakclient.client.boot.container.security;
+    exports net.yakclient.client.boot.internal.fs to java.base;
+    exports net.yakclient.client.boot.container.volume;
 
     exports net.yakclient.client.boot.internal to java.base; // Service loading
     exports net.yakclient.client.boot.maven;
@@ -41,7 +43,7 @@ module yakclient.client.boot {
     opens net.yakclient.client.boot.internal to java.base; // For service instantiation
     opens net.yakclient.client.boot.maven to com.fasterxml.jackson.databind; // For xml and Json parsing \/
     opens net.yakclient.client.boot.dependency to com.fasterxml.jackson.databind;
-    opens net.yakclient.client.boot.container to com.fasterxml.jackson.databind;
+    opens net.yakclient.client.boot.container.volume to com.fasterxml.jackson.databind;
 
     uses RepositoryProvider;
     uses MavenLayoutProvider;

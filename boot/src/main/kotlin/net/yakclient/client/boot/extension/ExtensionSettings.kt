@@ -7,5 +7,4 @@ public interface ExtensionSettings {
     public val extensionClass: String
     public val repositories: List<RepositorySettings>?
     public val dependencies: List<String>?
-
 }

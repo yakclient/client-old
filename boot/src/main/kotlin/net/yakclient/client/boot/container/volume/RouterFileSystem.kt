@@ -1,19 +1,16 @@
-package net.yakclient.client.boot.internal.fs
+package net.yakclient.client.boot.container.volume
 
-import net.yakclient.client.boot.container.callerContainer
-import net.yakclient.client.boot.internal.volume.VolumeAwarePath
 import java.nio.file.*
 import java.nio.file.attribute.UserPrincipalLookupService
 import java.nio.file.spi.FileSystemProvider
 
-internal class VolumeAwareFileSystem(
+public class RouterFileSystem(
     private val delegate: FileSystem,
-    private val provider: FileSystemProvider,
-    private val normalizer: PathNormalizer,
+    private val rules: RouterRules
 ) : FileSystem() {
     override fun close(): Unit = delegate.close()
 
-    override fun provider(): FileSystemProvider = provider
+    override fun provider(): FileSystemProvider = delegate.provider()
 
     override fun isOpen(): Boolean = delegate.isOpen
 
@@ -28,9 +25,15 @@ internal class VolumeAwareFileSystem(
     override fun supportedFileAttributeViews(): MutableSet<String> = delegate.supportedFileAttributeViews()
 
     override fun getPath(first: String, vararg more: String?): Path {
-        val container = callerContainer() ?: return VolumeAwarePath( delegate.getPath(first, *more), this, normalizer)
+        val path = delegate.getPath(first, *more)
 
-        return container.volume.fs.getPath(first, *more)
+        val rule = rules.rules
+            .map { it.classifier.classify(path) to it }
+            .filter { it.first.couldClassify }
+            .takeIf { it.isNotEmpty() }
+            ?.reduce { f, s -> if (f.first.isMoreSpecific(s.first)) f else s }?.second
+
+        return rule?.associatedVolume?.fs?.getPath(first, *more) ?: path
     }
 
     override fun getPathMatcher(syntaxAndPattern: String?): PathMatcher = delegate.getPathMatcher(syntaxAndPattern)

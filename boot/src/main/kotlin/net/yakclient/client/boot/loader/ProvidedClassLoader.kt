@@ -1,6 +1,5 @@
 package net.yakclient.client.boot.loader
 
-import net.yakclient.client.boot.container.ContainerSource
 import java.net.URL
 import java.nio.ByteBuffer
 import java.security.CodeSource
@@ -29,7 +28,8 @@ public open class ProvidedClassLoader(
     override fun findClass(moduleName: String?, name: String): Class<*>? = findClass(name)
 
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
-        return (loadLocalClass(name) ?: super.loadClass(name, false))?.also { if (resolve) resolveClass(it) }
+        return (findLoadedClass(name) ?: loadLocalClass(name) ?: super.loadClass(name, false))
+            ?.also { if (resolve) resolveClass(it) }
             ?: throw ClassNotFoundException(name)
     }
 
