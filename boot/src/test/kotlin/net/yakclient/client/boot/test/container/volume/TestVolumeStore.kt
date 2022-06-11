@@ -3,7 +3,7 @@ package net.yakclient.client.boot.test.container.volume
 import net.yakclient.client.boot.InitScope
 import net.yakclient.client.boot.container.volume.VolumeStore
 import net.yakclient.client.boot.init
-import net.yakclient.client.boot.internal.volume.absoluteRoot
+import net.yakclient.client.boot.container.volume.absoluteRoot
 import net.yakclient.client.util.child
 import net.yakclient.client.util.parent
 import net.yakclient.client.util.workingDir

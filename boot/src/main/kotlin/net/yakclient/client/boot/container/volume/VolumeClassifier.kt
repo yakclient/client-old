@@ -1,6 +1,5 @@
 package net.yakclient.client.boot.container.volume
 
-import net.yakclient.client.boot.internal.volume.absoluteRoot
 import java.nio.file.Path
 
 public class VolumeClassifier(

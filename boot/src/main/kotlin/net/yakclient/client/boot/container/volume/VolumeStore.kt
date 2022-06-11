@@ -43,6 +43,8 @@ public object VolumeStore {
 
     public operator fun get(name: String): ContainerVolume = volumes[name]!!
 
+    public fun contains(name: String) : Boolean = volumeInfo.contains(name)
+
     private data class VolumeInfo(
         val name: String,
         val path: String

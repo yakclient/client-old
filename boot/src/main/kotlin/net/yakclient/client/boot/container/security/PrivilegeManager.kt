@@ -2,23 +2,30 @@ package net.yakclient.client.boot.container.security
 
 import net.yakclient.client.boot.container.Container
 import net.yakclient.client.boot.container.callerContainer
+import net.yakclient.client.boot.container.containerOf
 
 public object PrivilegeManager {
     public fun hasPrivilege(container: Container, privilege: ContainerPrivilege): Boolean {
-        return container.privileges.any { it.name == privilege.name || it.implies(privilege) }
+        return container.privileges.any {
+            val containerOf = containerOf(it::class.java)
+
+            it.name == privilege.name || (it.implies(privilege)
+                    && containerOf != container
+                    && containerOf?.let { c -> hasPrivilege(c, privilege) } == true)
+        }
     }
 
     public fun hasPrivilege(privilege: ContainerPrivilege): Boolean {
         return callerContainer()?.let { hasPrivilege(it, privilege) } ?: true
     }
 
-    public fun createPrivileges(vararg privileges: ContainerPrivilege) : Privileges {
+    public fun createPrivileges(vararg privileges: ContainerPrivilege): Privileges {
         if (privileges.isEmpty()) return PrivilegeList(listOf())
 
         return createPrivileges(privileges.toList())
     }
 
-    public fun createPrivileges(privileges: List<ContainerPrivilege>) : Privileges {
+    public fun createPrivileges(privileges: List<ContainerPrivilege>): Privileges {
         check(privileges.all(::hasPrivilege)) { "Insufficient privileges to create: ${privileges.joinToString { it.name }}" }
 
         return PrivilegeList(privileges)
@@ -31,6 +38,6 @@ public object PrivilegeManager {
         return PrivilegeList(listOf(privilege))
     }
 
-    public fun Privileges.toMutablePrivileges() : MutablePrivilegeList = MutablePrivilegeList(toMutableList())
+    public fun Privileges.toMutablePrivileges(): MutablePrivilegeList = MutablePrivilegeList(toMutableList())
 }
 

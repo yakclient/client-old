@@ -3,6 +3,8 @@ package net.yakclient.client.api
 import net.yakclient.client.boot.extension.Extension
 
 public abstract class McExtension : Extension() {
+
+
     abstract override fun onLoad()
 
     public abstract fun onUnload()

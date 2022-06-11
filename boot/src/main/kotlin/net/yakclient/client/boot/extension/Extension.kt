@@ -1,7 +1,9 @@
 package net.yakclient.client.boot.extension
 
 import net.yakclient.archives.ResolvedArchive
+import net.yakclient.client.boot.container.Container
 import net.yakclient.client.boot.container.ContainerProcess
+import net.yakclient.client.boot.container.containerOf
 import net.yakclient.client.boot.exception.AlreadyInitializedException
 import net.yakclient.common.util.immutableLateInit
 import java.util.logging.Logger
@@ -16,6 +18,7 @@ public abstract class Extension : ContainerProcess {
     internal var ref: ResolvedArchive by immutableLateInit()
     private var settings: ExtensionSettings by immutableLateInit()
     public var logger: Logger by immutableLateInit()
+//    public var container: Container? by immutableLateInit<Container>()
 
     public fun init(ref: ResolvedArchive, settings: ExtensionSettings, parent: Extension? = null) {
         if (initialized) throw AlreadyInitializedException(this::class)
@@ -24,6 +27,8 @@ public abstract class Extension : ContainerProcess {
         this.settings = settings
         this.parent = parent
         this.logger = Logger.getLogger(settings.name)
+//        this.container =
+//            containerOf(this::class.java)
 
         initialized = true
     }

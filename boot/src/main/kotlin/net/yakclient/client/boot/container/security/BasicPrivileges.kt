@@ -37,6 +37,7 @@ public enum class FileAction(
     WRITE("write"),
     DELETE("delete"),
     EXECUTE("execute"),
-    READLINK("readlink")
+    READLINK("readlink"),
+    ALL("read,write,delete,execute,readlink")
 }
 

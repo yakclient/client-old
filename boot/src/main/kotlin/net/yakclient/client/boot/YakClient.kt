@@ -80,10 +80,7 @@ public fun main(args: Array<String>) {
                 YakClient,
             ),
             ExtensionLoader,
-            VolumeRouter(volume, RouterRules(
-                RouterRules.Rule(VolumeClassifier(volume), volume),
-                RouterRules.Rule(ClassPathClassifier, RootVolume)
-            )),
+            volume,
             PrivilegeManager.allPrivileges(),
             YakClient.loader
         ).process.start()
