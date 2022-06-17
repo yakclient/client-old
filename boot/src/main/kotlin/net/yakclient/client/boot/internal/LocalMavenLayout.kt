@@ -20,16 +20,31 @@ internal object LocalMavenLayout : MavenRepositoryLayout {
         )
     )
 
-    override fun artifactMetaOf(g: String, a: String): SafeResource =
-        (baseArtifact(g, a)).resolve("maven-metadata-local.xml").takeIf(Files::exists)?.toResource()
-            ?: throw InvalidMavenLayoutException("maven-metadata-local.xml", "local")
+    override fun artifactOf(
+        groupId: String,
+        artifactId: String,
+        version: String,
+        classifier: String?,
+        type: String
+    ): SafeResource? {
+        return versionedArtifact(
+            groupId,
+            artifactId,
+            version
+        ).resolve("$artifactId-$version${classifier?.let { "-$it" } ?: ""}.$type").takeIf(Files::exists)?.toResource()
+    }
 
-    override fun pomOf(g: String, a: String, v: String): SafeResource =
-        versionedArtifact(g, a, v).resolve("${a}-${v}.pom").takeIf(Files::exists)?.toResource()
-            ?: throw InvalidMavenLayoutException("${a}-${v}.pom", "local")
 
-    override fun archiveOf(g: String, a: String, v: String): SafeResource =
-        versionedArtifact(g, a, v).resolve("${a}-${v}.jar").takeIf(Files::exists)?.toResource() ?: throw InvalidMavenLayoutException("${a}-${v}.jar", "local")
+//    override fun artifactMetaOf(g: String, a: String): SafeResource =
+//        (baseArtifact(g, a)).resolve("maven-metadata-local.xml").takeIf(Files::exists)?.toResource()
+//            ?: throw InvalidMavenLayoutException("maven-metadata-local.xml", "local")
+//
+//    override fun pomOf(g: String, a: String, v: String): SafeResource =
+//        versionedArtifact(g, a, v).resolve("${a}-${v}.pom").takeIf(Files::exists)?.toResource()
+//            ?: throw InvalidMavenLayoutException("${a}-${v}.pom", "local")
+//
+//    override fun archiveOf(g: String, a: String, v: String): SafeResource =
+//        versionedArtifact(g, a, v).resolve("${a}-${v}.jar").takeIf(Files::exists)?.toResource() ?: throw InvalidMavenLayoutException("${a}-${v}.jar", "local")
 }
 
 private fun baseArtifact(group: String, artifact: String): Path =

@@ -7,4 +7,5 @@ module yakclient.client.api {
     requires yakclient.archives;
 
     exports net.yakclient.client.api.ext.specific to yakclient.client.boot;
+    exports net.yakclient.client.api;
 }

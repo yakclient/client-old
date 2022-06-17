@@ -7,9 +7,9 @@ import kotlin.test.Test
 class TestClassifiedPaths {
     @Test
     fun `Test path specificity determination`() {
-        val first = ClassifiedPath(true, Path.of("/Something/That/Is/Cool"))
-        val second = ClassifiedPath(true, Path.of("/Something/That/Is/Cool/And/Awesome"))
+        val first = ClassifiedPath(Path.of("/Something/That/Is/Cool"), true)
+        val second = ClassifiedPath(Path.of("/Something/That/Is/Cool/And/Awesome"), true)
 
-        assert(first.mostSpecific(second) == second)
+        assert(second.isMoreSpecific(first))
     }
 }

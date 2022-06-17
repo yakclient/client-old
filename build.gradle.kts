@@ -1,5 +1,8 @@
 plugins {
     kotlin("jvm") version "1.6.20"
+
+    id("maven-publish")
+    id("org.jetbrains.dokka") version "1.6.21"
     id("org.javamodularity.moduleplugin") version "1.8.10"
 }
 
@@ -34,7 +37,7 @@ subprojects {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(18))
+            languageVersion.set(JavaLanguageVersion.of(17))
         }
     }
 

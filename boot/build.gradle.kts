@@ -25,6 +25,11 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6")
 }
 
+modularity {
+    patchModule("maven.model.builder", "maven-model-3.8.6.jar")
+//    patchModule("maven.model.builder", "maven-model-builder-3.8.6.jar")
+}
+
 application {
     mainClass.set("net.yakclient.client.boot.YakClientKt")
     mainModule.set("yakclient.client.boot")

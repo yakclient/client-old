@@ -41,7 +41,7 @@ module yakclient.client.boot {
 
     opens net.yakclient.client.boot.repository to kotlin.reflect; // For kotlin CLI
     opens net.yakclient.client.boot.internal to java.base; // For service instantiation
-    opens net.yakclient.client.boot.maven to com.fasterxml.jackson.databind; // For xml and Json parsing \/
+    opens net.yakclient.client.boot.maven.pom to com.fasterxml.jackson.databind, kotlin.reflect; // For xml and Json parsing \/
     opens net.yakclient.client.boot.dependency to com.fasterxml.jackson.databind;
     opens net.yakclient.client.boot.container.volume to com.fasterxml.jackson.databind;
 

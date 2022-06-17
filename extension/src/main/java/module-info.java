@@ -5,4 +5,5 @@ module yakclient.client.extension {
     requires config4k;
     requires kotlinx.coroutines.core.jvm;
     requires java.logging;
+    requires yakclient.client.api;
 }

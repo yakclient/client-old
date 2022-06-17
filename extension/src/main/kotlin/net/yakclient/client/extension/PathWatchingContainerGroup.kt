@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.yakclient.client.api.McExtension
 import net.yakclient.client.boot.container.Container
 import net.yakclient.client.boot.extension.Extension
 import java.nio.file.Path
@@ -46,11 +47,20 @@ public class PathWatchingContainerGroup(
 
                     val filePath = (event as WatchEvent<Path>).context().toAbsolutePath()
                     if (!filePath.fileName.toString().endsWith(".jar")) {
-                        logger.log(Level.INFO, "New file creation detected in directory: '$path'. File name is: '${filePath.toFile()}' but suffix is not '.jar' so it is not loadable!")
+                        logger.log(
+                            Level.INFO,
+                            "New file creation detected in directory: '$path'. File name is: '${filePath.toFile()}' but suffix is not '.jar' so it is not loadable!"
+                        )
                         continue
                     }
 
-                    mutableContainers.add(MinecraftExtensionLoader.load(filePath, parent))
+                    val extension = runCatching { MinecraftExtensionLoader.load(filePath, parent) }
+                        .getOrElse {
+                            throw ExtensionLoadException(it.message ?: "Failed to load extension: '$filePath'")
+                        }.process as? McExtension
+                        ?: throw ExtensionLoadException("Successfully loaded jar file: '$filePath' however extension is not a child of ${McExtension::class.java.name}!")
+
+                    extension.onLoad()
                 }
             }
         }

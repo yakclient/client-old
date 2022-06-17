@@ -10,22 +10,33 @@ import net.yakclient.common.util.*
 import net.yakclient.common.util.resource.DownloadFailedException
 import net.yakclient.common.util.resource.SafeResource
 
-public open class SnapshotRepositoryLayout(settings: RepositorySettings) : DefaultMavenLayout(settings) {
+public class SnapshotRepositoryLayout(settings: RepositorySettings) : DefaultMavenLayout(settings) {
     private val mapper: ObjectMapper = XmlMapper().registerModule(KotlinModule())
 
-    protected fun latestClassifierVersions(resource: SafeResource): Map<String, String> {
+    private data class ArtifactAddress(
+        val classifier: String?,
+        val type: String
+    )
+
+    private fun latestSnapshotVersions(resource: SafeResource): Map<ArtifactAddress, String> {
         val tree = mapper.readValue<Map<String, Any>>(resource.open())
 
-        val snapshotVersions = ((tree["versioning"] as? Map<String, Any>)
-            ?.get("snapshotVersions") as? Map<String, Any>)?.get("snapshotVersion")
+        val snapshotVersions =
+            ((tree["versioning"] as? Map<String, Any>)?.get("snapshotVersions") as? Map<String, Any>)?.get("snapshotVersion")
 
         val extension = when (snapshotVersions) {
             is Map<*, *> -> {
-                snapshotVersions as Map<String, String>
-                mapOf(snapshotVersions["extension"]!! to snapshotVersions["value"]!!)
+                @Suppress(CAST) snapshotVersions as Map<String, String>
+
+                mapOf(
+                    ArtifactAddress(
+                        snapshotVersions["classifier"],
+                        snapshotVersions["extension"]!!
+                    ) to snapshotVersions["value"]!!
+                )
             }
             is List<*> -> snapshotVersions.filterIsInstance<Map<String, String>>()
-                .associate { it["extension"]!! to it["value"]!! }
+                .associate { ArtifactAddress(it["classifier"], it["extension"]!!) to it["value"]!! }
             else -> null
         }
 
@@ -33,25 +44,40 @@ public open class SnapshotRepositoryLayout(settings: RepositorySettings) : Defau
     }
 
 
-    override fun pomOf(g: String, a: String, v: String): SafeResource {
-        val snapshots = latestClassifierVersions(versionMetaOf(g, a, v))
-        val pomVersion = snapshots["pom"]
-            ?: throw IllegalStateException("Failed to find pom snapshot version for artifact: '$g-$a-$v'")
+//    override fun pomOf(g: String, a: String, v: String): SafeResource {
+//        val snapshots = latestClassifierVersions(versionMetaOf(g, a, v))
+//        val pomVersion = snapshots["pom"]
+//            ?: throw IllegalStateException("Failed to find pom snapshot version for artifact: '$g-$a-$v'")
+//
+//        val s = "${a}-${pomVersion}"
+//        return versionedArtifact(g, a, v).resourceAt("$s.pom") ?: throw InvalidMavenLayoutException(
+//            "$s.pom",
+//            settings.layout
+//        )
+//    }
+//
+//    override fun archiveOf(g: String, a: String, v: String): SafeResource {
+//        val snapshots = latestClassifierVersions(versionMetaOf(g, a, v))
+//        val jarVersion = snapshots["jar"]
+//            ?: throw IllegalStateException("Failed to find jar snapshot version for artifact: '$g-$a-$v'")
+//
+//        return versionedArtifact(g, a, v).resourceAt("${a}-${jarVersion}.jar")
+//            ?: throw InvalidMavenLayoutException("${a}-${jarVersion}.jar", settings.layout)
+//    }
 
-        val s = "${a}-${pomVersion}"
-        return versionedArtifact(g, a, v).resourceAt("$s.pom") ?: throw InvalidMavenLayoutException(
-            "$s.pom",
-            settings.layout
-        )
-    }
+    override fun artifactOf(
+        groupId: String,
+        artifactId: String,
+        version: String,
+        classifier: String?,
+        type: String
+    ): SafeResource? {
+        val snapshots = latestSnapshotVersions(versionMetaOf(groupId, artifactId, version))
+        val artifactVersion = snapshots[ArtifactAddress(classifier, type)] ?: return null
+//            ?: throw IllegalStateException("Failed to find artifact snapshot version for: '$groupId:$artifactId:$version:$classifier'")
 
-    override fun archiveOf(g: String, a: String, v: String): SafeResource {
-        val snapshots = latestClassifierVersions(versionMetaOf(g, a, v))
-        val jarVersion = snapshots["jar"]
-            ?: throw IllegalStateException("Failed to find jar snapshot version for artifact: '$g-$a-$v'")
-
-        return versionedArtifact(g, a, v).resourceAt("${a}-${jarVersion}.jar")
-            ?: throw InvalidMavenLayoutException("${a}-${jarVersion}.jar", settings.layout)
+        val s = "${artifactId}-${artifactVersion}${classifier?.let { "-$it" } ?: ""}.$type"
+        return versionedArtifact(groupId, artifactId, version).resourceAt(s)
     }
 
     protected fun versionMetaOf(g: String, a: String, v: String): SafeResource {
