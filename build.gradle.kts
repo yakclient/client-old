@@ -13,7 +13,6 @@ repositories {
 group = "net.yakclient"
 version = "1.0-SNAPSHOT"
 
-
 tasks.wrapper {
     gradleVersion = "7.3.1"
 }

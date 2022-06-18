@@ -35,7 +35,7 @@ public data class PomParent(
 @JsonIgnoreProperties(ignoreUnknown = true)
 public data class PomData(
     val groupId: String?,
-    val artifactId: String,
+    val artifactId: String = "<SUPER_POM>",
     val version: String?,
     val properties: Map<String, String> = mapOf(),
     val parent: PomParent?,

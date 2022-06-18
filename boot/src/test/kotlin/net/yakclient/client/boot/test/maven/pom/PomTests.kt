@@ -1,5 +1,7 @@
-package net.yakclient.client.boot.test.repository.maven.pom
+package net.yakclient.client.boot.test.maven.pom
 
+import com.fasterxml.jackson.dataformat.xml.XmlMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import net.yakclient.client.boot.InitScope
 import net.yakclient.client.boot.init
 import net.yakclient.client.boot.internal.CentralMavenLayout
@@ -11,6 +13,7 @@ import net.yakclient.client.boot.repository.RepositorySettings
 import net.yakclient.client.util.child
 import net.yakclient.client.util.parent
 import net.yakclient.client.util.workingDir
+import java.net.URL
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 

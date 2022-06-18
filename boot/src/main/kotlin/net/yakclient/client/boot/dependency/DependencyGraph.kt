@@ -54,7 +54,7 @@ public object DependencyGraph {
                     loadCached(cache.getOrNull(desc)!!).referenceOrChildren()
                 } else {
                     transaction.rollback()
-                    logger.log(Level.WARNING, "Failed to cache dependency : '${desc.toPrettyString()}'")
+//                    logger.log(Level.WARNING, "Failed to cache dependency : '${desc.toPrettyString()}'")
                     listOf()
                 }
             }
@@ -68,7 +68,7 @@ public object DependencyGraph {
         ): Boolean {
             if (trace?.isCyclic(desc) == true) throw CyclicDependenciesException(trace.topDependency() ?: desc)
 
-            val resolved = CachedDependency.Descriptor(desc.artifact, desc.version)
+            val resolved = CachedDependency.Descriptor(desc.artifact, desc.version, desc.classifier)
 
             return if (!graph.contains(resolved) && !cache.contains(resolved)) {
                 val dependency: Dependency = run {
@@ -99,7 +99,7 @@ public object DependencyGraph {
                     logger.log(
                         Level.WARNING, "Failed to cache dependencies : ${
                             failed.joinToString(transform = Dependency.Descriptor::toPrettyString)
-                        }, Dependency trace was: ${trace.toPrettyString(dependency)}. "
+                        }, Dependency trace was: ${trace.toPrettyString(dependency)}. Looked into repository: ${repo.settings}"
                     )
 
                     false

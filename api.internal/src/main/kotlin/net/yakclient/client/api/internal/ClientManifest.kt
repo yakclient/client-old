@@ -2,6 +2,7 @@ package net.yakclient.client.api.internal
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import net.yakclient.client.boot.maven.MavenDescriptor
 import net.yakclient.common.util.resource.SafeResource
 import net.yakclient.common.util.toResource
 import java.net.URI
@@ -35,11 +36,11 @@ public data class ClientLibrary(
     val name: String,
     val downloads: LibraryDownloads,
     @JsonProperty("extract")
-    private val _extract : LibraryExtracts?,
+    private val _extract: LibraryExtracts?,
     val natives: Map<String, String> = HashMap(),
     val rules: List<LibraryRule> = ArrayList()
 ) {
-    val extract : LibraryExtracts = _extract ?: LibraryExtracts(listOf())
+    val extract: LibraryExtracts = _extract ?: LibraryExtracts(listOf())
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -51,9 +52,10 @@ public data class LibraryRule(
     val osName: String? = osProperties["name"]
 }
 
-public enum class LibraryRuleAction{
+public enum class LibraryRuleAction {
     @JsonProperty("allow")
     ALLOW,
+
     @JsonProperty("disallow")
     DISALLOW
 }
@@ -80,7 +82,7 @@ public data class McArtifact(
     @JsonProperty("sha1")
     val checksum: String
 ) {
-    public fun toResource() : SafeResource = url.toResource(HexFormat.of().parseHex(checksum))
+    public fun toResource(): SafeResource = url.toResource(HexFormat.of().parseHex(checksum))
 }
 
 //public enum class ClassifierType(name: String) {
@@ -102,3 +104,5 @@ public data class McArtifact(
 //    @JsonProperty("sources")
 //    SOURCES("sources")
 //}
+public val MavenDescriptor.isNativeLib: Boolean
+    get() = classifier?.contains("native") == true

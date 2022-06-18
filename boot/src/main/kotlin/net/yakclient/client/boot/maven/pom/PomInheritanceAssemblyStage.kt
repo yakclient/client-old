@@ -1,10 +1,14 @@
 package net.yakclient.client.boot.maven.pom
 
-import net.yakclient.client.boot.maven.MavenRepositoryHandler
+import com.fasterxml.jackson.databind.ObjectReader
+import net.yakclient.client.boot.internal.CentralMavenLayout
+import net.yakclient.client.boot.maven.*
 import net.yakclient.client.boot.maven.layout.MavenRepositoryLayout
+import net.yakclient.client.boot.maven.mavenCentral
 
 internal class PomInheritanceAssemblyStage :
     PomProcessStage<ParentResolutionStage.ParentResolutionData, PomInheritanceAssemblyStage.AssembledPomData> {
+    // TODO Redo the pom inheritance, its technically not fully correct since list fields dont get added together correctly.
     override fun process(i: ParentResolutionStage.ParentResolutionData): AssembledPomData {
         val (data, ref, parents) = i
 

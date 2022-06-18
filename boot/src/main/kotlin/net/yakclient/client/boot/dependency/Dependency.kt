@@ -16,6 +16,7 @@ public class Dependency(
     public interface Descriptor {
         public val artifact: String
         public val version: String?
+        public val classifier: String?
 
         public fun toPrettyString(): String = "$artifact:$version"
     }

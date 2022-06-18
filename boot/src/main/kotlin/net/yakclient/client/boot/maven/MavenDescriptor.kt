@@ -6,7 +6,7 @@ public data class MavenDescriptor(
     val group: String,
     override val artifact: String,
     override val version: String,
-    val classifier: String?
+    override val classifier: String?
 ) : Dependency.Descriptor {
     override fun toString(): String = toPrettyString()
 

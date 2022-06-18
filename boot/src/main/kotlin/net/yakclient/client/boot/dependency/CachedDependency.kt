@@ -11,19 +11,23 @@ public data class CachedDependency(
 ) {
     public data class Descriptor(
         override val artifact: String,
-        override val version: String?
+        override val version: String?,
+        override val classifier: String?
     ) : Dependency.Descriptor {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Descriptor) return false
 
             if (artifact != other.artifact) return false
+            if (classifier != other.classifier) return false
 
             return true
         }
 
         override fun hashCode(): Int {
-            return artifact.hashCode()
+            var result = artifact.hashCode()
+            result = 31 * result + (classifier?.hashCode() ?: 0)
+            return result
         }
     }
 }

@@ -23,6 +23,8 @@ dependencies {
 
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.12.6")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.6")
+    implementation("org.apache.maven:maven-model-builder:3.8.6")
+    testImplementation("org.apache.maven:maven-model-builder:3.8.6")
 }
 
 modularity {

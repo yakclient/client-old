@@ -10,6 +10,8 @@ internal class PluginManagementInjectionStage :
 
         val build = data.build
 
+//
+
         val injectedPlugins = build.plugins.map { p ->
             val managed by lazy {
                 build.pluginManagement.plugins.find { p.groupId == it.groupId && p.artifactId == it.artifactId }
@@ -19,8 +21,7 @@ internal class PluginManagementInjectionStage :
             PomPlugin(
                 p.groupId,
                 p.artifactId,
-                p.version ?: managed?.version
-                ?: throw IllegalStateException("Failed to find version for plugin : '${p.groupId}:${p.artifactId}'"),
+                p.version ?: managed?.version,
                 p.extensions ?: managed?.extensions ?: false,
                 p.configurations + (managed?.configurations ?: mapOf())
             )

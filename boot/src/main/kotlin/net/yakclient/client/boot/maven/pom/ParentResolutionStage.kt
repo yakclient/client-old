@@ -2,6 +2,7 @@ package net.yakclient.client.boot.maven.pom
 
 import net.yakclient.client.boot.internal.CentralMavenLayout
 import net.yakclient.client.boot.maven.MavenRepositoryHandler
+import net.yakclient.client.boot.maven.SUPER_POM
 import net.yakclient.client.boot.maven.layout.MavenLayoutFactory
 import net.yakclient.client.boot.maven.layout.MavenRepositoryLayout
 import net.yakclient.client.boot.maven.parseData
@@ -11,7 +12,7 @@ import net.yakclient.client.boot.repository.RepositorySettings
 internal class ParentResolutionStage : PomProcessStage<WrappedPomData, ParentResolutionStage.ParentResolutionData> {
     override fun process(i: WrappedPomData): ParentResolutionData {
         fun recursivelyLoadParents(child: PomData, thisLayout: MavenRepositoryLayout): List<PomData> {
-            val parent: PomParent = child.parent ?: return listOf()
+            val parent: PomParent = child.parent ?: return listOf(SUPER_POM)
 
             val immediateRepos = listOf(thisLayout, CentralMavenLayout) + child.repositories
                 .map(PomRepository::toSettings)
@@ -35,7 +36,7 @@ internal class ParentResolutionStage : PomProcessStage<WrappedPomData, ParentRes
 
             val parentData = parseData(artifact)
 
-            return recursivelyLoadParents(parentData, thisLayout) + parentData
+            return listOf(parentData) + recursivelyLoadParents(parentData, thisLayout)
         }
 
         return ParentResolutionData(i.pomData, i.thisRepo, recursivelyLoadParents(i.pomData, i.thisRepo.layout))

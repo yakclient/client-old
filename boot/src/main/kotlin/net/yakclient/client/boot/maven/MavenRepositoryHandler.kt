@@ -40,7 +40,7 @@ public open class MavenRepositoryHandler(
     private fun findInternal(desc: MavenDescriptor): Dependency? {
         logger.log(Level.FINEST, "Loading maven dependency: '$desc'")
 
-        val (group, artifact, version) = listOf(desc.group, desc.artifact, desc.version)
+        val (group, artifact, version, classifier) = desc
 
         val valueOr = layout.artifactOf(group, artifact, version, null, "pom")
 
@@ -69,7 +69,7 @@ public open class MavenRepositoryHandler(
                 group,
                 artifact,
                 version,
-                desc.classifier,
+                classifier,
                 pom.packaging
             ) else null,
             needed.mapTo(HashSet()) {

@@ -72,20 +72,15 @@ public class SnapshotRepositoryLayout(settings: RepositorySettings) : DefaultMav
         classifier: String?,
         type: String
     ): SafeResource? {
-        val snapshots = latestSnapshotVersions(versionMetaOf(groupId, artifactId, version))
+        val snapshots = latestSnapshotVersions(versionMetaOf(groupId, artifactId, version) ?: return null)
         val artifactVersion = snapshots[ArtifactAddress(classifier, type)] ?: return null
-//            ?: throw IllegalStateException("Failed to find artifact snapshot version for: '$groupId:$artifactId:$version:$classifier'")
 
         val s = "${artifactId}-${artifactVersion}${classifier?.let { "-$it" } ?: ""}.$type"
         return versionedArtifact(groupId, artifactId, version).resourceAt(s)
     }
 
-    protected fun versionMetaOf(g: String, a: String, v: String): SafeResource {
-        return runCatching(DownloadFailedException::class) {
-            versionedArtifact(g, a, v).resourceAt("maven-metadata.xml") ?: throw InvalidMavenLayoutException(
-                "Failed to find maven metadata for artifact: '$g-$a-$a'",
-                settings.layout
-            )
-        } ?: throw InvalidMavenLayoutException("maven-metadata.xml", settings.layout)
-    }
+    protected fun versionMetaOf(g: String, a: String, v: String): SafeResource? =
+        runCatching(DownloadFailedException::class) {
+            versionedArtifact(g, a, v).resourceAt("maven-metadata.xml")
+        }
 }

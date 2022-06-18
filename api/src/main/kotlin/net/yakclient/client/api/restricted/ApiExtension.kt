@@ -17,7 +17,7 @@ public class ApiExtension : Extension() {
                 this,
             ),
             ExtensionLoader,
-            VolumeStore["api-data"],
+            VolumeStore["api-internal-data"],
             PrivilegeManager.allPrivileges(),
             loader
         ).process.start()

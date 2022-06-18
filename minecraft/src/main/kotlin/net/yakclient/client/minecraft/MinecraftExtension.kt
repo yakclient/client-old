@@ -25,7 +25,7 @@ public class MinecraftExtension : Extension() {
                     this,
                 ),
                 ExtensionLoader,
-                VolumeStore["api-data"],
+                VolumeStore["extension-data"],
                 PrivilegeManager.allPrivileges(),
                 loader
             ).process.start()
