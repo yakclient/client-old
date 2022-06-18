@@ -8,7 +8,6 @@ import net.yakclient.client.boot.exception.CyclicDependenciesException
 import net.yakclient.client.boot.repository.RepositoryFactory
 import net.yakclient.client.boot.repository.RepositoryHandler
 import net.yakclient.client.boot.repository.RepositorySettings
-import net.yakclient.common.util.CAST
 import net.yakclient.common.util.mapNotBlocking
 import java.nio.file.Path
 import java.util.logging.Level
@@ -68,7 +67,7 @@ public object DependencyGraph {
         ): Boolean {
             if (trace?.isCyclic(desc) == true) throw CyclicDependenciesException(trace.topDependency() ?: desc)
 
-            val resolved = CachedDependency.Descriptor(desc.artifact, desc.version, desc.classifier)
+            val resolved = CachedDependency.CachedDescriptor(desc.artifact, desc.version, desc.classifier)
 
             return if (!graph.contains(resolved) && !cache.contains(resolved)) {
                 val dependency: Dependency = run {
@@ -160,7 +159,7 @@ private fun DependencyNode.referenceOrChildren(): List<ResolvedArchive> =
     }
 
 internal class DependencyNode(
-    val desc: CachedDependency.Descriptor,
+    val desc: CachedDependency.CachedDescriptor,
     val reference: ResolvedArchive?,
     val children: Set<DependencyNode>,
 ) {
@@ -183,8 +182,6 @@ internal data class DependencyTrace(
     val parent: DependencyTrace?, val desc: Dependency.Descriptor
 ) {
     fun flatten(): List<Dependency.Descriptor> = (parent?.flatten() ?: listOf()) + desc
-
-    fun depth(): Int = 1 + (parent?.depth() ?: 0)
 }
 
 public infix fun DependencyGraph.DependencyLoader<*>.load(name: String): List<ResolvedArchive> = this.load(name)

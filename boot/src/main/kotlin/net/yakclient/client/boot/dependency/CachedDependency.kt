@@ -1,22 +1,21 @@
 package net.yakclient.client.boot.dependency
 
 import java.nio.file.Path
-import kotlin.reflect.full.isSuperclassOf
 
 
 public data class CachedDependency(
     val path: Path?,
-    val dependants: List<Descriptor>,
-    val desc: Descriptor
+    val dependants: List<CachedDescriptor>,
+    val desc: CachedDescriptor
 ) {
-    public data class Descriptor(
+    public data class CachedDescriptor(
         override val artifact: String,
         override val version: String?,
         override val classifier: String?
     ) : Dependency.Descriptor {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
-            if (other !is Descriptor) return false
+            if (other !is CachedDescriptor) return false
 
             if (artifact != other.artifact) return false
             if (classifier != other.classifier) return false

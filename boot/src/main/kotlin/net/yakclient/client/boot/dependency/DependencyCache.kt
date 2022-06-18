@@ -3,9 +3,7 @@ package net.yakclient.client.boot.dependency
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
-import net.yakclient.client.boot.YakClient
 import net.yakclient.common.util.copyTo
-import net.yakclient.common.util.forEachBlocking
 import net.yakclient.common.util.make
 import java.nio.file.Files
 import java.nio.file.Path
@@ -19,7 +17,7 @@ public class DependencyCache(
     private val cacheMeta = cachePath.resolve("dependencies-meta.json")
 
     private val logger: Logger = Logger.getLogger(DependencyCache::class.simpleName)
-    private val all: MutableMap<CachedDependency.Descriptor, CachedDependency>
+    private val all: MutableMap<CachedDependency.CachedDescriptor, CachedDependency>
 
     private val mapper: ObjectMapper = ObjectMapper().registerModule(KotlinModule())
 
@@ -32,9 +30,9 @@ public class DependencyCache(
         all = mapper.readValue<Set<CachedDependency>>(metaFile).associateByTo(ConcurrentHashMap()) { it.desc }
     }
 
-    public fun getOrNull(d: Dependency.Descriptor): CachedDependency? = all[CachedDependency.Descriptor(d.artifact, d.version, d.classifier)]
+    public fun getOrNull(d: Dependency.Descriptor): CachedDependency? = all[CachedDependency.CachedDescriptor(d.artifact, d.version, d.classifier)]
 
-    public fun contains(d: Dependency.Descriptor): Boolean = all.contains(CachedDependency.Descriptor(d.artifact, d.version, d.classifier))
+    public fun contains(d: Dependency.Descriptor): Boolean = all.contains(CachedDependency.CachedDescriptor(d.artifact, d.version, d.classifier))
 
     public inner class Transaction {
         private val toCache: MutableList<Dependency> = ArrayList()
@@ -58,7 +56,7 @@ public class DependencyCache(
             val cacheJar = dependency.jar != null
 
             // Create a cached descriptor
-            val key = desc.let { CachedDependency.Descriptor(it.artifact, it.version, it.classifier) }
+            val key = desc.let { CachedDependency.CachedDescriptor(it.artifact, it.version, it.classifier) }
             // Check the in-memory cache to see if it has already been loaded, if it has then return it
             if (all.contains(key)) return all[key]!!
 
@@ -70,7 +68,7 @@ public class DependencyCache(
                 jarPath.takeIf { cacheJar },
 
                 // Mapping the dependencies to be pedantic
-                dependency.dependants.map { CachedDependency.Descriptor(it.desc.artifact, it.desc.version, it.desc.classifier) },
+                dependency.dependants.map { CachedDependency.CachedDescriptor(it.desc.artifact, it.desc.version, it.desc.classifier) },
                 key
             )
 

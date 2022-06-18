@@ -50,5 +50,4 @@ public object MinecraftExtensionLoader {
             parent.loader
         )
     }
-
 }
